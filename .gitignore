@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+*.egg-info/
+build/
+dist/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Runtime artifacts
+/scans/
+/tmp/
+*.apk
+*.aab
+
+# AI assistants -- never commit
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+.cursor/
+.aider*
+.copilot/
+
+# Project docs that must never leak into this repo
+# (PAE.git is code-only; product docs live elsewhere)
+IKUSA_*.md
+MARKET_RESEARCH*.md
+PLAN.md
+DEMO_RUNBOOK.md
+GOOGLE_FORMS*.md
+/docs/
+/apkplan/
+
+# IDE
+.idea/
+.vscode/
+*.swp
