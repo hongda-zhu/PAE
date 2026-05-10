@@ -1,0 +1,33 @@
+# IKUSA prototype service stack.
+# Two services run side-by-side so Phase 4 can spin everything up with
+# a single `docker compose up -d`:
+#   - mobsf: static + dynamic APK analysis (REST API on :8000)
+#   - ollama: local LLM runtime for narrative generation (:11434)
+#
+# Note on MobSF storage: the MobSF image runs as uid 9901 and Docker
+# named volumes are created root-owned, which makes /home/mobsf/.MobSF
+# unwritable on first boot. For the prototype we let MobSF use the
+# container-internal layer (so the API key is regenerated on every
+# `docker compose down`). Capture the key once and pin it via .env.
+# Ollama runs as root inside its image so a named volume is safe and
+# preserves the (multi-GB) downloaded model across restarts.
+
+services:
+  mobsf:
+    image: opensecurity/mobile-security-framework-mobsf:latest
+    container_name: ikusa-mobsf
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ikusa-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  ollama-data:
