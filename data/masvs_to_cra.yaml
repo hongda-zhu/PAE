@@ -1,0 +1,61 @@
+# Mapping from MASVS top-level category to CRA (Regulation 2024/2847) Annex I
+# essential cybersecurity requirements. Sources: OWASP MASVS v2.1.0,
+# EU CRA Annex I.
+#
+# This is a best-effort mapping for the prototype, NOT a legal certification.
+# Keep it conservative: when in doubt, omit rather than over-claim.
+
+MASVS-STORAGE:
+  article_short: "Art. 13.3 - Proteccion de datos"
+  cra_articles:
+    - id: "Annex I (1)(h)"
+      title: "Protect confidentiality of stored data"
+      rationale: "Sensitive data at rest must be protected against unauthorized access."
+    - id: "Annex I (1)(j)"
+      title: "Minimize attack surface"
+      rationale: "Insecure storage expands the attack surface unnecessarily."
+
+MASVS-CRYPTO:
+  article_short: "Art. 13.1 - Diseno seguro"
+  cra_articles:
+    - id: "Annex I (1)(h)"
+      title: "Protect confidentiality and integrity"
+      rationale: "Weak or obsolete cryptography undermines confidentiality and integrity guarantees."
+
+MASVS-NETWORK:
+  article_short: "Art. 13.2 - Sin vulnerabilidades conocidas"
+  cra_articles:
+    - id: "Annex I (1)(h)"
+      title: "Protect data in transit"
+    - id: "Annex I (1)(i)"
+      title: "Protect integrity of data, commands, programs and configurations"
+
+MASVS-AUTH:
+  article_short: "Art. 13.4 - Control de acceso"
+  cra_articles:
+    - id: "Annex I (1)(d)"
+      title: "Authentication, identity or access management"
+
+MASVS-PLATFORM:
+  article_short: "Art. 13.5 - Plataforma"
+  cra_articles:
+    - id: "Annex I (1)(e)"
+      title: "Protect against unauthorized access"
+
+MASVS-CODE:
+  article_short: "Art. 13.6 - Actualizaciones"
+  cra_articles:
+    - id: "Annex I (1)(f)"
+      title: "Limit attack surface, including external interfaces"
+
+MASVS-RESILIENCE:
+  article_short: "Art. 13.7 - Resiliencia"
+  cra_articles:
+    - id: "Annex I (1)(g)"
+      title: "Reduce impact of incidents"
+
+MASVS-PRIVACY:
+  article_short: "Art. 13.3 - Privacidad"
+  cra_articles:
+    - id: "Annex I (1)(h)"
+      title: "Personal data protection"
