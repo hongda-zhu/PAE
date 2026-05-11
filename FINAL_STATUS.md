@@ -54,6 +54,33 @@ Browser: http://localhost:9000
 ## Repo state
 
 - Branch: master
-- Commits: 11 after Phase 7 commit
-- Tests: 66 passing
+- Commits: 12 (Phase 0-7 + CI workflow)
+- Tests: 66 passing, `ruff check` clean
 - Remote: none configured (local-only)
+- CI: `.github/workflows/test.yml` runs `ruff check` + `pytest --deselect tests/test_report.py`
+  (deselect because report tests need Docker; CI uses a clean Ubuntu runner)
+
+## Demo prep state (overnight autonomous run)
+
+- Ollama qwen2.5:7b model is **pre-warmed and kept resident** (`keep_alive=60m`).
+  First scan after warm-up should still take ~3 min for triage but the model
+  weights don't have to be reloaded from disk.
+- MobSF has the InsecureBankv2 hash `5ee4829065640f9c936ac861d1650ffc` cached
+  from prior smoke runs; the "decompiling" stage on a repeat scan of the same
+  APK is near-instant.
+- Demo backup PDF saved at `apkplan/demo_assets/insecurebank_qwen7b_20260511.pdf`
+  (the same artifact `scripts/smoke_api.sh` produced, kept outside the repo).
+- Attempted to pull qwen2.5:3b to halve LLM latency; the Ollama registry
+  (`registry.ollama.ai`) timed out from this network. Stuck with 7b.
+
+## Quick demo run (10 seconds to start)
+
+```bash
+cd apkplan/ikusa-prototype
+make run                           # starts uvicorn on :9000
+# Browser: http://localhost:9000
+# Drop in: ../test_apks/insecurebankv2.apk
+# Pick tier "Compliance PDF"
+# Wait ~3 min on the "Triage IA" stage (live message updates every 2s)
+# Score: 50/100 + 4 findings + PDF download
+```
