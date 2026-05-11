@@ -117,11 +117,21 @@ def test_list_scans_after_scan(client):
     assert any(s["scan_id"] == scan_id for s in listed)
 
 
-def test_list_scans_scopes_by_authenticated_key(client, tmp_path):
+def test_list_scans_scopes_by_authenticated_key(client, tmp_path, monkeypatch):
     # Drive the filter by writing ScanState directly into the per-test scan
     # storage (tmp_path is also the SCAN_STORAGE per the fixture). One scan
     # is tagged with user_id=demo, another stays anonymous (user_id=None).
+    from ikusa.auth import ApiKey, save_keys
     from ikusa.state import ScanState, save_state
+
+    # Seed a per-test api_keys store so CI (where data/api_keys.yaml is
+    # gitignored and absent) can authenticate "ikusa_sk_demo".
+    keys_store = tmp_path / "keys.yaml"
+    save_keys(
+        {"ikusa_sk_demo": ApiKey(key="ikusa_sk_demo", user_id="demo", tier="free", credits=10)},
+        keys_store,
+    )
+    monkeypatch.setenv("API_KEYS_PATH", str(keys_store))
 
     save_state(
         ScanState(scan_id="alice1", status="done", stage="done", user_id="demo"),
@@ -132,8 +142,6 @@ def test_list_scans_scopes_by_authenticated_key(client, tmp_path):
         tmp_path,
     )
 
-    # The api_keys.yaml shipped under data/ has ikusa_sk_demo with user_id=demo;
-    # use it so the GET /scans request is scoped to that user_id.
     auth_resp = client.get(
         "/scans",
         headers={"Authorization": "ikusa_sk_demo"},

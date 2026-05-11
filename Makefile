@@ -1,4 +1,4 @@
-.PHONY: install test run seed-keys mobsf-up mobsf-down ollama-up ollama-down fmt weasyprint-build
+.PHONY: install test run mcp-stdio seed-keys mobsf-up mobsf-down ollama-up ollama-down fmt weasyprint-build
 
 install:
 	uv sync --extra dev
@@ -8,6 +8,9 @@ test:
 
 run:
 	uv run uvicorn ikusa.api:app --reload --port 9787
+
+mcp-stdio:
+	uv run ikusa-mcp
 
 seed-keys:
 	uv run python scripts/seed_demo_keys.py
