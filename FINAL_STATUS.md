@@ -54,7 +54,7 @@ Browser: http://localhost:9000
 ## Repo state
 
 - Branch: master
-- Commits: 12 (Phase 0-7 + CI workflow)
+- Commits: 15 (Phase 0-7 + CI workflow + docs sync)
 - Tests: 66 passing, `ruff check` clean
 - Remote: none configured (local-only)
 - CI: `.github/workflows/test.yml` runs `ruff check` + `pytest --deselect tests/test_report.py`
