@@ -1,5 +1,5 @@
 
-from ikusa.state import ScanState, load_state, save_state
+from ikusa.state import ScanState, list_states_for_user, load_state, save_state
 
 
 def test_save_and_load_roundtrip(tmp_path):
@@ -55,3 +55,21 @@ def test_state_failed_carries_error(tmp_path):
     loaded = load_state("abc", tmp_path)
     assert loaded.status == "failed"
     assert loaded.error == "ollama unreachable"
+
+
+def test_list_states_for_user_filters_by_user_id(tmp_path):
+    save_state(ScanState(scan_id="a", status="done", stage="done", user_id="alice"), tmp_path)
+    save_state(ScanState(scan_id="b", status="done", stage="done", user_id="bob"), tmp_path)
+    save_state(ScanState(scan_id="c", status="done", stage="done", user_id=None), tmp_path)
+
+    alice = list_states_for_user(tmp_path, "alice")
+    assert [s.scan_id for s in alice] == ["a"]
+
+    anon = list_states_for_user(tmp_path, None)
+    assert [s.scan_id for s in anon] == ["c"]
+
+    # Order: newest first
+    save_state(ScanState(scan_id="a2", status="done", stage="done", user_id="alice"), tmp_path)
+    alice = list_states_for_user(tmp_path, "alice")
+    assert alice[0].scan_id == "a2"
+    assert alice[1].scan_id == "a"

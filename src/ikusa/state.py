@@ -30,6 +30,11 @@ class ScanState(BaseModel):
     message: str = ""
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+    user_id: str | None = Field(
+        default=None,
+        description="The authenticated user this scan belongs to. None = anonymous.",
+    )
+
     # Populated when status == "done".
     app_name: str | None = None
     package_name: str | None = None
@@ -70,3 +75,31 @@ def load_state(scan_id: str, storage: Path) -> ScanState | None:
     if not target.exists():
         return None
     return ScanState.model_validate_json(target.read_text(encoding="utf-8"))
+
+
+def list_states_for_user(storage: Path, user_id: str | None) -> list[ScanState]:
+    """Return all ScanState records belonging to a user.
+
+    Iterates state.json files under storage/. Pass user_id=None to list
+    anonymous scans (matches the anonymous fallback from auth.py).
+
+    Order: newest first by updated_at.
+    """
+    if not storage.exists():
+        return []
+    states: list[ScanState] = []
+    for scan_dir in storage.iterdir():
+        if not scan_dir.is_dir():
+            continue
+        state_file = scan_dir / "state.json"
+        if not state_file.exists():
+            continue
+        try:
+            state = ScanState.model_validate_json(state_file.read_text(encoding="utf-8"))
+        except Exception:
+            # Skip corrupt state.json files instead of crashing the whole list.
+            continue
+        if state.user_id == user_id:
+            states.append(state)
+    states.sort(key=lambda s: s.updated_at, reverse=True)
+    return states

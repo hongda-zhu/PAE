@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from ikusa.auth import ApiKey, consume_credit, require_api_key
 from ikusa.config import get_settings
 from ikusa.pipeline import run_scan_pipeline
-from ikusa.state import ScanState, load_state, save_state
+from ikusa.state import ScanState, list_states_for_user, load_state, save_state
 
 
 app = FastAPI(title="IKUSA Compliance Scanner -- Prototype")
@@ -45,9 +45,12 @@ async def scan(
 
     # Consume one scan from the key's quota BEFORE enqueueing the pipeline.
     # Anonymous keys are not in the YAML store; they use the in-memory fallback
-    # which has no persisted counter (Feature 4 will tag user_id into state).
+    # which has no persisted counter. Anonymous scans are tagged user_id=None
+    # in state.json so /scans returns them under the anonymous bucket.
     if api_key.user_id != "anonymous":
         consume_credit(api_key, settings.api_keys_path)
+
+    user_id = None if api_key.user_id == "anonymous" else api_key.user_id
 
     save_state(
         ScanState(
@@ -55,6 +58,7 @@ async def scan(
             status="processing",
             stage="uploaded",
             message=f"Received {file.filename} ({len(content)} bytes, tier={tier})",
+            user_id=user_id,
         ),
         settings.scan_storage,
     )
@@ -65,9 +69,21 @@ async def scan(
         apk_path=apk_path,
         apk_filename=file.filename,
         settings=settings,
+        user_id=user_id,
     )
 
     return JSONResponse({"scan_id": scan_id, "status": "processing"})
+
+
+@app.get("/scans")
+async def list_scans(
+    api_key: ApiKey = Depends(require_api_key),
+):
+    """List scans belonging to the authenticated user (anonymous if no key)."""
+    settings = get_settings()
+    user_id = None if api_key.user_id == "anonymous" else api_key.user_id
+    states = list_states_for_user(settings.scan_storage, user_id)
+    return JSONResponse([s.model_dump(mode="json") for s in states])
 
 
 @app.get("/scan/{scan_id}")

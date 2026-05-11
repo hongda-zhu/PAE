@@ -22,6 +22,9 @@
     .header { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; height: 56px; position: sticky; top: 0; z-index: 100; }
     .header .logo { font-family: monospace; font-size: 20px; font-weight: bold; color: var(--accent); margin-right: 8px; }
     .header .logo-sub { font-size: 14px; color: var(--text); }
+    .header .nav { margin-left: 32px; display: flex; gap: 20px; }
+    .header .nav a { font-size: 14px; color: var(--text-sec); cursor: pointer; }
+    .header .nav a:hover { color: var(--accent); }
     .header .scan-id { margin-left: auto; font-family: monospace; font-size: 12px; color: var(--text-light); }
 
     /* Footer */
@@ -127,6 +130,18 @@
     .action-bar { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
     .analysis-meta { font-size: 13px; color: var(--text-light); margin-top: 16px; }
 
+    /* ======= HISTORY VIEW ======= */
+    .history-table { width: 100%; border-collapse: collapse; background: var(--white); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .history-table th, .history-table td { padding: 12px 16px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border); }
+    .history-table th { background: #F8F9FA; font-weight: 600; color: var(--text-sec); font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .history-table tr:last-child td { border-bottom: none; }
+    .history-table tr:hover td { background: #FBFBFA; }
+    .hint { color: var(--text-sec); font-size: 14px; padding: 16px 0; }
+    .btn-secondary { display: inline-block; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; background: white; border: 2px solid var(--accent); color: var(--accent); transition: opacity .15s; }
+    .btn-secondary:hover { opacity: .85; }
+    .btn-link { background: transparent; border: none; color: var(--accent); font-size: 14px; font-weight: 600; cursor: pointer; padding: 4px 8px; }
+    .btn-link:hover { text-decoration: underline; }
+
     /* ======= ERROR VIEW ======= */
     .error-card { border: 1px solid var(--danger); background: #FFF5F5; }
     .error-card h2 { color: var(--danger); margin-bottom: 12px; }
@@ -144,6 +159,10 @@
   <header class="header">
     <span class="logo">IKUSA</span>
     <span class="logo-sub">Compliance Scanner</span>
+    <nav class="nav">
+      <a href="#" id="navHome">Inicio</a>
+      <a href="#" id="navHistory">Historial</a>
+    </nav>
     <span class="scan-id" id="scanIdLabel"></span>
   </header>
 
@@ -218,6 +237,21 @@
       </div>
       <div class="progress-bar"><div class="progress-bar-fill" id="progressBarFill" style="width:8%"></div></div>
       <div class="progress-message" id="progressMessage">Inicializando...</div>
+    </div>
+  </main>
+
+  <!-- VIEW HISTORY -->
+  <main id="view-history" class="view">
+    <div class="container">
+      <h2 style="margin-bottom:16px">Historial de scans</h2>
+      <p class="hint" id="history-empty" style="display:none">No hay scans previos. Sube un APK para empezar.</p>
+      <table class="history-table" id="history-table">
+        <thead>
+          <tr><th>App</th><th>Fecha</th><th>Estado</th><th>Score</th><th></th></tr>
+        </thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+      <button class="btn-secondary" id="historyNewScan">Nuevo scan</button>
     </div>
   </main>
 
@@ -601,6 +635,79 @@
       document.getElementById('errorText').textContent = msg;
       showView('error');
     }
+
+    // ----- History view -----
+    let currentScanId = null;
+
+    async function loadHistory() {
+      const headers = {};
+      const stored = localStorage.getItem('ikusa_api_key');
+      if (stored) headers['Authorization'] = stored;
+
+      try {
+        const resp = await fetch('/scans', { headers });
+        if (!resp.ok) throw new Error('/scans returned ' + resp.status);
+        const scans = await resp.json();
+        renderHistory(scans);
+        showView('history');
+      } catch (e) {
+        showError('No se pudo cargar el historial: ' + e.message);
+      }
+    }
+
+    function renderHistory(scans) {
+      const tbody = document.getElementById('history-tbody');
+      const empty = document.getElementById('history-empty');
+      const table = document.getElementById('history-table');
+      clear(tbody);
+
+      if (scans.length === 0) {
+        empty.style.display = 'block';
+        table.style.display = 'none';
+        return;
+      }
+      empty.style.display = 'none';
+      table.style.display = 'table';
+
+      for (const s of scans) {
+        const tr = document.createElement('tr');
+        const appCell = document.createElement('td');
+        appCell.textContent = s.app_name || s.scan_id.substring(0, 8);
+        const dateCell = document.createElement('td');
+        dateCell.textContent = new Date(s.updated_at).toLocaleString();
+        const statusCell = document.createElement('td');
+        statusCell.textContent = s.status;
+        const scoreCell = document.createElement('td');
+        scoreCell.textContent = s.cra_score != null ? (s.cra_score + '/100') : '—';
+        const actionCell = document.createElement('td');
+        if (s.status === 'done') {
+          const openBtn = document.createElement('button');
+          openBtn.textContent = 'Ver';
+          openBtn.className = 'btn-link';
+          openBtn.addEventListener('click', () => {
+            currentScanId = s.scan_id;
+            loadResults(s.scan_id);
+          });
+          actionCell.appendChild(openBtn);
+        }
+        tr.appendChild(appCell);
+        tr.appendChild(dateCell);
+        tr.appendChild(statusCell);
+        tr.appendChild(scoreCell);
+        tr.appendChild(actionCell);
+        tbody.appendChild(tr);
+      }
+    }
+
+    document.getElementById('navHome').addEventListener('click', e => {
+      e.preventDefault();
+      showView('upload');
+    });
+    document.getElementById('navHistory').addEventListener('click', e => {
+      e.preventDefault();
+      loadHistory();
+    });
+    document.getElementById('historyNewScan').addEventListener('click', () => showView('upload'));
 
     document.getElementById('backToUpload').addEventListener('click', () => location.reload());
     document.getElementById('analyzeAnother').addEventListener('click', () => location.reload());

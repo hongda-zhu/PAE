@@ -28,10 +28,16 @@ async def run_scan_pipeline(
     apk_path: Path,
     apk_filename: str,
     settings: Settings,
+    user_id: str | None = None,
 ) -> None:
     """End-to-end scan pipeline. Writes state.json + result.json + report.pdf
     under settings.scan_storage / scan_id. Any exception is captured into
-    a 'failed' state instead of propagating."""
+    a 'failed' state instead of propagating.
+
+    user_id is propagated into every persisted ScanState so the /scans
+    endpoint can filter the history by authenticated user. None means
+    anonymous (no Authorization header on the original POST /scan).
+    """
 
     started = time.monotonic()
     storage = settings.scan_storage
@@ -45,6 +51,7 @@ async def run_scan_pipeline(
                 status="processing",
                 stage=stage,  # type: ignore[arg-type]
                 message=message,
+                user_id=user_id,
             ),
             storage,
         )
@@ -118,6 +125,7 @@ async def run_scan_pipeline(
                 cra_score=score,
                 findings_count=len(triaged),
                 duration_seconds=duration,
+                user_id=user_id,
             ),
             storage,
         )
@@ -129,6 +137,7 @@ async def run_scan_pipeline(
                 status="failed",
                 stage="triaging",  # best-effort label
                 error=f"{type(exc).__name__}: {exc}",
+                user_id=user_id,
             ),
             storage,
         )
