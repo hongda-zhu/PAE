@@ -10,10 +10,11 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from ikusa.auth import ApiKey, consume_credit, require_api_key
 from ikusa.config import get_settings
 from ikusa.pipeline import run_scan_pipeline
 from ikusa.state import ScanState, load_state, save_state
@@ -27,6 +28,7 @@ async def scan(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     tier: str = Form("compliance"),
+    api_key: ApiKey = Depends(require_api_key),
 ):
     """Accept an APK upload, kick off the pipeline, return scan_id immediately."""
     if not file.filename:
@@ -40,6 +42,12 @@ async def scan(
     apk_path = scan_dir / "input.apk"
     content = await file.read()
     apk_path.write_bytes(content)
+
+    # Consume one scan from the key's quota BEFORE enqueueing the pipeline.
+    # Anonymous keys are not in the YAML store; they use the in-memory fallback
+    # which has no persisted counter (Feature 4 will tag user_id into state).
+    if api_key.user_id != "anonymous":
+        consume_credit(api_key, settings.api_keys_path)
 
     save_state(
         ScanState(

@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen2.5:7b"
 
     scan_storage: Path = Field(default=Path("/tmp/ikusa-scans"))
+    api_keys_path: Path = Field(default=Path("data/api_keys.yaml"))
 
 
 def get_settings() -> Settings:
