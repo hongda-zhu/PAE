@@ -1,0 +1,131 @@
+:root {
+  --blue: #4E79A7;
+  --orange: #F28E2B;
+  --red: #E15759;
+  --green: #59A14F;
+  --text: #2D3436;
+  --text-sec: #636E72;
+  --text-light: #B2BEC3;
+  --border: #DFE6E9;
+  --accent: #4E79A7;
+  --success: #00B894;
+  --warning: #FDCB6E;
+  --danger: #E15759;
+}
+
+.pdf-paper {
+  background: white;
+  padding: 8px;
+}
+
+.pdf-header {
+  background: var(--accent);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.pdf-header .pdf-logo {
+  font-family: monospace;
+  font-size: 18pt;
+  font-weight: bold;
+}
+.pdf-header small {
+  opacity: .9;
+  display: block;
+  font-size: 9pt;
+}
+
+.pdf-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  font-size: 10pt;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.pdf-meta dt { color: var(--text-sec); }
+.pdf-meta dd { font-weight: 600; }
+
+.score-bar {
+  height: 14pt;
+  background: var(--border);
+  border-radius: 7pt;
+  overflow: hidden;
+  margin: 6px 0;
+}
+.score-bar-fill {
+  height: 100%;
+  background: var(--orange);
+  border-radius: 7pt;
+}
+
+.pdf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+  margin: 8px 0;
+}
+.pdf-table th {
+  background: var(--accent);
+  color: white;
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 9pt;
+}
+.pdf-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.pdf-table tr.alto td { background: #FFF5F5; }
+.pdf-table tr.medio td { background: #FFFBF0; }
+.pdf-table tr.ok td { background: #F0FFF0; }
+
+.pdf-not-covered {
+  font-size: 9pt;
+  color: var(--text-light);
+  font-style: italic;
+  margin: 6px 0;
+}
+
+.pdf-finding {
+  margin-bottom: 8px;
+  font-size: 10pt;
+}
+.pdf-finding .title {
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 10pt;
+}
+.pdf-finding .fix {
+  color: var(--text-sec);
+  font-size: 9pt;
+  margin-top: 2px;
+}
+
+.cra-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 10pt;
+  border-bottom: 1px solid var(--border);
+}
+.cra-status {
+  font-weight: 700;
+  font-size: 9pt;
+}
+
+.disclaimer {
+  background: #FFF3CD;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 8pt;
+  color: #856404;
+  font-style: italic;
+  margin-top: 12px;
+  text-align: center;
+}

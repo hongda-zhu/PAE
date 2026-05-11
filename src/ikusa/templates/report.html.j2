@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>IKUSA Compliance Report -- {{ app_name }}</title>
+<style>{{ inline_css }}</style>
+<style>
+  @page { size: A4; margin: 1.5cm; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #2D3436; }
+  h4 { font-size: 13pt; margin-top: 14px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+  <div class="pdf-paper">
+
+    <div class="pdf-header">
+      <div>
+        <span class="pdf-logo">IKUSA</span>
+        <small>Compliance Report</small>
+      </div>
+      <div style="text-align:right">
+        <strong>MASVS / CRA</strong>
+        <small>v2.1.0 / 2024/2847</small>
+      </div>
+    </div>
+
+    <dl class="pdf-meta">
+      <dt>Aplicacion:</dt><dd>{{ app_name }}</dd>
+      <dt>Paquete:</dt><dd>{{ package_name }}</dd>
+      <dt>Fecha:</dt><dd>{{ scan_date }}</dd>
+      <dt>Tier:</dt><dd>Compliance PDF (prototype)</dd>
+    </dl>
+
+    <h4>CRA READINESS SCORE</h4>
+    <div class="score-bar"><div class="score-bar-fill" style="width:{{ cra_score }}%"></div></div>
+    <p style="text-align:right;font-weight:700;">{{ cra_score }}/100</p>
+
+    <h4>RESUMEN POR CATEGORIA MASVS</h4>
+    <table class="pdf-table">
+      <thead>
+        <tr><th>Categoria</th><th>Findings</th><th>Severidad</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        {% for row in masvs_summary %}
+        <tr class="{{ row.css_class }}">
+          <td>{{ row.category }}</td>
+          <td>{{ row.count }}</td>
+          <td>{{ row.severity_label }}</td>
+          <td>{{ row.status }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="pdf-not-covered">
+      Categorias no cubiertas: {{ not_covered | join(", ") }}<br>
+      (Requieren analisis dinamico / runtime testing)
+    </p>
+
+    <h4>FINDINGS CRITICOS (Top {{ top_findings | length }})</h4>
+    {% for f in top_findings %}
+      <div class="pdf-finding">
+        <div class="title">{{ loop.index }}. {{ f.title }}</div>
+        <div class="fix"><strong>Explicacion:</strong> {{ f.explanation }}</div>
+        <div class="fix"><strong>Remediacion:</strong> {{ f.remediation }}</div>
+      </div>
+    {% endfor %}
+
+    <h4>MAPPING CRA (Reglamento 2024/2847)</h4>
+    {% for cra in cra_rows %}
+      <div class="cra-row">
+        <span>{{ cra.label }}</span>
+        <span class="cra-status" style="color:{{ cra.color }}">{{ cra.status }}</span>
+      </div>
+    {% endfor %}
+
+    <div class="disclaimer">
+      Este informe no sustituye una auditoria profesional ni constituye certificacion de compliance.
+    </div>
+
+  </div>
+</body>
+</html>

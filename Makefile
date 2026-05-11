@@ -1,4 +1,4 @@
-.PHONY: install test run mobsf-up mobsf-down ollama-up ollama-down fmt
+.PHONY: install test run mobsf-up mobsf-down ollama-up ollama-down fmt weasyprint-build
 
 install:
 	uv sync --extra dev
@@ -24,3 +24,6 @@ ollama-down:
 fmt:
 	uv run ruff format src tests
 	uv run ruff check --fix src tests
+
+weasyprint-build:
+	docker build --network=host -t ikusa-weasyprint:latest -f docker/weasyprint/Dockerfile docker/weasyprint
