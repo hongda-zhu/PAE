@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
     scan_storage: Path = Field(default=Path("/tmp/ikusa-scans"))
     api_keys_path: Path = Field(default=Path("data/api_keys.yaml"))
+    payment_sessions_path: Path = Field(default=Path("data/payment_sessions.yaml"))
 
 
 def get_settings() -> Settings:

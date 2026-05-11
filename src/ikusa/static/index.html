@@ -322,7 +322,12 @@
     <div class="card error-card">
       <h2>Error en el analisis</h2>
       <p style="margin-bottom:12px">La pipeline ha fallado. Detalle del error:</p>
-      <pre id="errorText"></pre>
+      <pre id="error-message"></pre>
+      <div id="error-cta" style="display:none; margin-top: 16px;">
+        <p style="margin-bottom:8px">Comprar mas scans:</p>
+        <button class="btn btn-primary" id="buyCredits10">10 scans &middot; $20</button>
+        <button class="btn btn-primary" id="buyCredits50">50 scans &middot; $90</button>
+      </div>
       <div class="action-bar">
         <button class="btn btn-primary" id="errorRetry">Volver a empezar</button>
       </div>
@@ -428,7 +433,7 @@
         const resp = await fetch('/scan', { method: 'POST', body: fd, headers });
         if (resp.status === 402) {
           const payload = await resp.json();
-          showError('Sin scans disponibles. ' + (payload.detail || 'Compra creditos o cambia de plan.'));
+          showQuotaError(payload.detail || 'Sin scans disponibles. Compra creditos o cambia de plan.');
           return;
         }
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -656,9 +661,44 @@
     }
 
     function showError(msg) {
-      document.getElementById('errorText').textContent = msg;
+      document.getElementById('error-message').textContent = msg;
+      const cta = document.getElementById('error-cta');
+      if (cta) cta.style.display = 'none';
       showView('error');
     }
+
+    function showQuotaError(detail) {
+      // Reuse the existing #view-error structure but surface a "buy credits" CTA.
+      document.getElementById('error-message').textContent = detail;
+      document.getElementById('error-cta').style.display = 'block';
+      showView('error');
+    }
+
+    async function buyCredits(productId) {
+      const stored = localStorage.getItem('ikusa_api_key');
+      if (!stored) {
+        showError('Inicia sesion con una API key antes de comprar creditos.');
+        return;
+      }
+      try {
+        const resp = await fetch('/payment/checkout', {
+          method: 'POST',
+          headers: { 'Authorization': stored, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: productId }),
+        });
+        if (!resp.ok) {
+          showError('Checkout failed: ' + resp.status);
+          return;
+        }
+        const data = await resp.json();
+        window.location.href = data.checkout_url;
+      } catch (e) {
+        showError('Checkout error: ' + e.message);
+      }
+    }
+
+    document.getElementById('buyCredits10').addEventListener('click', () => buyCredits('credits-10'));
+    document.getElementById('buyCredits50').addEventListener('click', () => buyCredits('credits-50'));
 
     // ----- History view -----
     let currentScanId = null;
