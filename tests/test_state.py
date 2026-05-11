@@ -1,5 +1,3 @@
-from datetime import datetime
-from pathlib import Path
 
 from ikusa.state import ScanState, load_state, save_state
 

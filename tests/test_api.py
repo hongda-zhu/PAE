@@ -1,5 +1,3 @@
-from pathlib import Path
-from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,7 +8,6 @@ def client(monkeypatch, tmp_path, mocker):
     # Override the SCAN_STORAGE so each test has an isolated dir.
     monkeypatch.setenv("SCAN_STORAGE", str(tmp_path))
     # Clear settings cache before import.
-    from ikusa import config
 
     # Force re-read of settings each call (no caching to override).
     from ikusa.api import app  # noqa: E402
