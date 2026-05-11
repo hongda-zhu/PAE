@@ -8,9 +8,11 @@ polls GET /scan/{id} to follow progress.
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from ikusa.config import get_settings
 from ikusa.pipeline import run_scan_pipeline
@@ -95,3 +97,11 @@ async def get_scan_report(scan_id: str):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# Serve the SPA frontend last so it does not shadow API routes.
+# StaticFiles mounted at "/" is a wildcard that swallows any route registered
+# AFTER it -- this mount MUST be the final declaration in this module.
+_STATIC_DIR = Path(__file__).parent / "static"
+if _STATIC_DIR.exists():
+    app.mount("/", StaticFiles(directory=str(_STATIC_DIR), html=True), name="static")

@@ -80,6 +80,15 @@ def test_scan_missing_file_returns_422(client):
     assert resp.status_code == 422
 
 
+def test_root_returns_static_index(client):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    body = resp.text
+    assert "IKUSA" in body
+    # The page must reference our scan endpoint, not a mock.
+    assert "/scan" in body
+
+
 def test_scan_report_404_when_not_ready(client):
     resp = client.post(
         "/scan",

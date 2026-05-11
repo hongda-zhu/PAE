@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IKUSA Compliance Scanner</title>
+  <style>
+    /* Reset + design tokens copied from the static mock prototype. */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --blue: #4E79A7; --orange: #F28E2B; --red: #E15759;
+      --teal: #76B7B2; --green: #59A14F; --purple: #B07AA1;
+      --bg: #F5F5F2; --white: #FFFFFF; --text: #2D3436;
+      --text-sec: #636E72; --text-light: #B2BEC3; --border: #DFE6E9;
+      --accent: #4E79A7; --success: #00B894; --warning: #FDCB6E;
+      --danger: #E15759;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    a { text-decoration: none; color: inherit; }
+
+    /* Header */
+    .header { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; height: 56px; position: sticky; top: 0; z-index: 100; }
+    .header .logo { font-family: monospace; font-size: 20px; font-weight: bold; color: var(--accent); margin-right: 8px; }
+    .header .logo-sub { font-size: 14px; color: var(--text); }
+    .header .scan-id { margin-left: auto; font-family: monospace; font-size: 12px; color: var(--text-light); }
+
+    /* Footer */
+    .footer { text-align: center; padding: 16px; color: var(--text-light); font-size: 12px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    /* Views (only one visible at a time). */
+    .view { display: none; max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+    .view.active { display: block; }
+
+    /* Cards */
+    .card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+
+    /* Buttons */
+    .btn { display: inline-block; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-success { background: var(--green); color: white; }
+    .btn-outline { background: white; border: 2px solid var(--accent); color: var(--accent); }
+    .btn-ghost { background: white; border: 1px solid var(--text-sec); color: var(--text-sec); }
+
+    /* Badge */
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; color: white; text-transform: uppercase; }
+    .badge-alto { background: var(--danger); }
+    .badge-medio { background: var(--orange); }
+    .badge-bajo { background: var(--warning); color: #856404; }
+    .badge-info { background: var(--text-light); }
+    .badge-ok { background: var(--success); }
+
+    /* ======= UPLOAD VIEW ======= */
+    .upload-hero { text-align: center; margin-bottom: 24px; }
+    .upload-hero h1 { font-size: 28px; margin-bottom: 8px; }
+    .upload-hero p { color: var(--text-sec); font-size: 16px; }
+    .upload-zone { border: 2px dashed var(--accent); border-radius: 12px; padding: 40px; text-align: center; margin-bottom: 16px; cursor: pointer; transition: background .15s; display: block; }
+    .upload-zone:hover, .upload-zone.dragover { background: #EBF5FB; }
+    .upload-zone .arrow { font-size: 32px; color: var(--accent); margin-bottom: 8px; }
+    .upload-zone p { color: var(--text); font-size: 15px; margin-bottom: 4px; }
+    .upload-zone small { color: var(--text-light); font-size: 13px; }
+    .upload-zone input[type="file"] { display: none; }
+    .tier-select { text-align: center; margin: 24px 0 8px; font-size: 16px; font-weight: 600; }
+    .tiers { display: flex; gap: 16px; justify-content: center; margin-bottom: 24px; }
+    .tier-card { border: 2px solid var(--border); border-radius: 12px; padding: 20px; width: 200px; text-align: center; cursor: pointer; position: relative; transition: border-color .15s, box-shadow .15s; }
+    .tier-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+    .tier-card.selected { border-color: var(--accent); box-shadow: 0 2px 12px rgba(78,121,167,.2); }
+    .tier-card .price { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .tier-card .name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .tier-card .desc { font-size: 13px; color: var(--text-sec); }
+    .tier-card .recommended { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 2px 12px; border-radius: 10px; }
+    .tier-card input[type="radio"] { margin-top: 12px; accent-color: var(--accent); }
+    .tier-card[data-color="teal"] .price { color: var(--teal); }
+    .tier-card[data-color="teal"].selected { border-color: var(--teal); }
+    .tier-card[data-color="blue"] .price { color: var(--accent); }
+    .tier-card[data-color="green"] .price { color: var(--green); }
+    .tier-card[data-color="green"].selected { border-color: var(--green); }
+    .upload-cta { text-align: center; margin: 24px 0; }
+    .upload-cta .btn { font-size: 18px; padding: 14px 48px; }
+    .trust-signals { display: flex; justify-content: center; gap: 32px; margin: 20px 0; }
+    .trust-signals span { color: var(--text-sec); font-size: 14px; }
+    .trust-signals span::before { content: '\2713'; color: var(--success); font-weight: bold; margin-right: 6px; }
+    .stats-bar { text-align: center; color: var(--text-light); font-size: 13px; margin-top: 12px; }
+
+    /* ======= PROGRESS VIEW ======= */
+    .progress-hero { text-align: center; margin-bottom: 24px; }
+    .progress-hero h2 { font-size: 22px; margin-bottom: 8px; }
+    .progress-hero p { color: var(--text-sec); font-size: 14px; }
+    .progress-pills { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 24px 0; }
+    .pill { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); font-size: 13px; color: var(--text-sec); background: white; }
+    .pill.active { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; }
+    .pill.done { background: var(--success); color: white; border-color: var(--success); }
+    .progress-bar { background: var(--border); height: 8px; border-radius: 4px; overflow: hidden; margin: 16px 0; }
+    .progress-bar-fill { background: var(--accent); height: 100%; transition: width .3s; }
+    .progress-message { font-family: monospace; font-size: 13px; color: var(--text-sec); background: #F8F9FA; padding: 12px 16px; border-radius: 6px; min-height: 40px; word-break: break-word; }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; vertical-align: middle; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ======= RESULTS VIEW ======= */
+    .breadcrumb { font-size: 13px; color: var(--text-sec); margin-bottom: 20px; }
+    .breadcrumb a { color: var(--accent); cursor: pointer; }
+    .results-grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+    .score-card { text-align: center; }
+    .score-circle { width: 140px; height: 140px; border-radius: 50%; border: 8px solid var(--border); display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 16px auto; position: relative; }
+    .score-circle .value { font-size: 44px; font-weight: 700; }
+    .score-circle .label { font-size: 14px; color: var(--text-sec); }
+    .score-circle.score-red { border-color: var(--danger); }
+    .score-circle.score-orange { border-color: var(--orange); }
+    .score-circle.score-green { border-color: var(--success); }
+    .score-warning { background: #FFF3CD; border-radius: 8px; padding: 8px; font-size: 13px; color: #856404; font-weight: 600; margin-top: 12px; }
+    .masvs-list { margin-top: 20px; }
+    .masvs-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; gap: 8px; }
+    .masvs-row.na { color: var(--text-light); }
+    .masvs-row .count { min-width: 28px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 4px; color: white; font-size: 12px; font-weight: 700; padding: 0 6px; }
+    .filter-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-tab { padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; background: transparent; border: 1px solid var(--border); color: var(--text-sec); }
+    .filter-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .finding-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .finding-row:last-child { border-bottom: none; }
+    .finding-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
+    .finding-header .title { font-weight: 600; font-size: 15px; }
+    .finding-meta { font-size: 13px; color: var(--text-sec); margin-bottom: 6px; }
+    .finding-fix { font-size: 13px; color: var(--text-sec); font-style: italic; }
+    .ai-box { background: #F0F7FF; border: 1px solid var(--accent); border-radius: 8px; padding: 16px; margin-top: 16px; font-size: 13px; line-height: 1.7; }
+    .ai-box h4 { margin-bottom: 8px; }
+    .action-bar { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+    .analysis-meta { font-size: 13px; color: var(--text-light); margin-top: 16px; }
+
+    /* ======= ERROR VIEW ======= */
+    .error-card { border: 1px solid var(--danger); background: #FFF5F5; }
+    .error-card h2 { color: var(--danger); margin-bottom: 12px; }
+    .error-card pre { background: white; padding: 12px; border-radius: 6px; font-size: 13px; color: var(--text); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .results-grid { grid-template-columns: 1fr; }
+      .tiers { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <span class="logo">IKUSA</span>
+    <span class="logo-sub">Compliance Scanner</span>
+    <span class="scan-id" id="scanIdLabel"></span>
+  </header>
+
+  <!-- VIEW 1: UPLOAD -->
+  <main id="view-upload" class="view active">
+    <div class="upload-hero">
+      <h1>Audita tu APK en minutos, no en semanas</h1>
+      <p>Informe de compliance MASVS/CRA automatico</p>
+    </div>
+
+    <div class="card">
+      <label class="upload-zone" id="dropzone" for="fileInput">
+        <div class="arrow">&uarr;</div>
+        <p>Arrastra tu archivo .apk o .aab aqui</p>
+        <small>o haz clic para seleccionar</small>
+        <input type="file" id="fileInput" accept=".apk,.aab">
+        <p style="margin-top:8px"><small style="color:var(--text-light)">Formatos: .apk, .aab | Max: 150 MB</small></p>
+        <p id="fileName" style="margin-top:8px;font-weight:600;color:var(--accent);display:none"></p>
+      </label>
+
+      <p class="tier-select">Selecciona el tipo de analisis:</p>
+      <div class="tiers">
+        <div class="tier-card" data-color="teal" data-tier="basico">
+          <div class="price">$0.50</div>
+          <div class="name">Scan Basico</div>
+          <div class="desc">SAST sin LLM</div>
+          <input type="radio" name="tier" value="basico">
+        </div>
+        <div class="tier-card selected" data-color="blue" data-tier="completo">
+          <div class="recommended">RECOMENDADO</div>
+          <div class="price">$2.00</div>
+          <div class="name">Scan Completo</div>
+          <div class="desc">SAST + IA (LLM)</div>
+          <input type="radio" name="tier" value="completo" checked>
+        </div>
+        <div class="tier-card" data-color="green" data-tier="compliance">
+          <div class="price">$5.00</div>
+          <div class="name">Compliance PDF</div>
+          <div class="desc">MASVS/CRA Report</div>
+          <input type="radio" name="tier" value="compliance">
+        </div>
+      </div>
+
+      <div class="upload-cta">
+        <button class="btn btn-primary" id="analyzeBtn" disabled>Analizar APK</button>
+      </div>
+    </div>
+
+    <div class="trust-signals">
+      <span>OWASP MASVS v2.1</span>
+      <span>CRA Reglamento 2024/2847</span>
+      <span>Privacidad by-design</span>
+    </div>
+    <div class="stats-bar">Prototipo local | MobSF + Ollama + WeasyPrint | Tiempo medio: 30-120 s</div>
+  </main>
+
+  <!-- VIEW 2: PROGRESS -->
+  <main id="view-progress" class="view">
+    <div class="progress-hero">
+      <h2><span class="spinner"></span>Analizando tu APK</h2>
+      <p>El proceso se ejecuta en segundo plano. No cierres esta pestana.</p>
+    </div>
+
+    <div class="card">
+      <div class="progress-pills" id="progressPills">
+        <span class="pill" data-stage="uploaded">1. Recibido</span>
+        <span class="pill" data-stage="decompiling">2. Decompilando</span>
+        <span class="pill" data-stage="analyzing">3. Clasificando</span>
+        <span class="pill" data-stage="triaging">4. Triage IA</span>
+        <span class="pill" data-stage="rendering">5. PDF</span>
+        <span class="pill" data-stage="done">6. Listo</span>
+      </div>
+      <div class="progress-bar"><div class="progress-bar-fill" id="progressBarFill" style="width:8%"></div></div>
+      <div class="progress-message" id="progressMessage">Inicializando...</div>
+    </div>
+  </main>
+
+  <!-- VIEW 3: RESULTS -->
+  <main id="view-results" class="view">
+    <div class="breadcrumb"><a id="backToUpload">Inicio</a> &gt; Resultados &gt; <span id="resultAppName">...</span></div>
+
+    <div class="results-grid">
+      <!-- Left column: score + MASVS -->
+      <div>
+        <div class="card score-card">
+          <h3>CRA Readiness Score</h3>
+          <div class="score-circle" id="scoreCircle">
+            <span class="value" id="score-value">--</span>
+            <span class="label">/100</span>
+          </div>
+          <div class="score-warning" id="scoreWarning">Calculando...</div>
+        </div>
+
+        <div class="card masvs-list" style="margin-top:16px">
+          <h3 style="margin-bottom:12px">Categorias MASVS</h3>
+          <div id="masvsList"></div>
+          <p style="font-size:12px;color:var(--text-light);margin-top:8px">N/A = requiere testing dinamico</p>
+        </div>
+      </div>
+
+      <!-- Right column: findings -->
+      <div>
+        <div class="card findings-card">
+          <h3 style="margin-bottom:12px"><span id="findingsTitle">Findings</span></h3>
+          <div class="filter-tabs" id="filterTabs"></div>
+          <div id="findingsList"></div>
+
+          <div class="ai-box" id="aiBox" style="display:none">
+            <h4>Resumen IA (top finding)</h4>
+            <p id="aiBoxText"></p>
+          </div>
+
+          <div class="action-bar">
+            <a class="btn btn-success" id="download-pdf" href="#" target="_blank">Descargar PDF</a>
+            <a class="btn btn-outline" id="download-json" href="#" target="_blank">Ver JSON</a>
+            <button class="btn btn-ghost" id="analyzeAnother">Analizar otro APK</button>
+          </div>
+        </div>
+
+        <div class="analysis-meta" id="analysisMeta"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- VIEW 4: ERROR -->
+  <main id="view-error" class="view">
+    <div class="card error-card">
+      <h2>Error en el analisis</h2>
+      <p style="margin-bottom:12px">La pipeline ha fallado. Detalle del error:</p>
+      <pre id="errorText"></pre>
+      <div class="action-bar">
+        <button class="btn btn-primary" id="errorRetry">Volver a empezar</button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">Prototipo IKUSA Compliance Scanner | MASVS v2.1 + CRA Annex I</footer>
+
+  <script>
+    // ----- View routing helpers -----
+    function showView(name) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const el = document.getElementById('view-' + name);
+      if (el) el.classList.add('active');
+    }
+
+    // ----- DOM helpers (avoid innerHTML so untrusted strings cannot inject HTML) -----
+    function el(tag, opts) {
+      const node = document.createElement(tag);
+      if (!opts) return node;
+      if (opts.cls) node.className = opts.cls;
+      if (opts.text !== undefined) node.textContent = opts.text;
+      if (opts.style) node.setAttribute('style', opts.style);
+      return node;
+    }
+    function clear(parent) { while (parent.firstChild) parent.removeChild(parent.firstChild); }
+
+    // ----- Tier selection -----
+    document.querySelectorAll('.tier-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.tier-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        const radio = card.querySelector('input[type=radio]');
+        if (radio) radio.checked = true;
+      });
+    });
+
+    // ----- File picker + drag/drop -----
+    const fileInput = document.getElementById('fileInput');
+    const fileNameLabel = document.getElementById('fileName');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const dropzone = document.getElementById('dropzone');
+
+    function setSelectedFile(file) {
+      if (!file) return;
+      fileNameLabel.textContent = file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
+      fileNameLabel.style.display = 'block';
+      analyzeBtn.disabled = false;
+    }
+
+    fileInput.addEventListener('change', e => setSelectedFile(e.target.files[0]));
+
+    ['dragenter', 'dragover'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dragover'); })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); })
+    );
+    dropzone.addEventListener('drop', e => {
+      const f = e.dataTransfer.files[0];
+      if (!f) return;
+      const dt = new DataTransfer();
+      dt.items.add(f);
+      fileInput.files = dt.files;
+      setSelectedFile(f);
+    });
+
+    // ----- Stage ordering for progress UI -----
+    const STAGES = ['uploaded', 'decompiling', 'analyzing', 'triaging', 'rendering', 'done'];
+
+    function updateProgress(stage, message) {
+      const idx = STAGES.indexOf(stage);
+      document.querySelectorAll('.pill').forEach((pill, i) => {
+        pill.classList.remove('active', 'done');
+        if (i < idx) pill.classList.add('done');
+        else if (i === idx) pill.classList.add('active');
+      });
+      const pct = Math.max(8, Math.round(((idx + 1) / STAGES.length) * 100));
+      document.getElementById('progressBarFill').style.width = pct + '%';
+      document.getElementById('progressMessage').textContent =
+        message || ('Estado: ' + (stage || 'desconocido'));
+    }
+
+    // ----- Start scan + poll loop -----
+    analyzeBtn.addEventListener('click', startScan);
+
+    async function startScan() {
+      const file = fileInput.files[0];
+      if (!file) return;
+      const tier = document.querySelector('input[name="tier"]:checked').value;
+      analyzeBtn.disabled = true;
+
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('tier', tier);
+
+      let data;
+      try {
+        const resp = await fetch('/scan', { method: 'POST', body: fd });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        data = await resp.json();
+      } catch (err) {
+        showError('Upload failed: ' + err.message);
+        return;
+      }
+      document.getElementById('scanIdLabel').textContent = 'scan_id=' + data.scan_id;
+      showView('progress');
+      updateProgress('uploaded', 'Recibido. Esperando MobSF...');
+      pollUntilDone(data.scan_id);
+    }
+
+    async function pollUntilDone(scanId) {
+      while (true) {
+        let s;
+        try {
+          const r = await fetch('/scan/' + scanId);
+          if (!r.ok) {
+            await new Promise(res => setTimeout(res, 2000));
+            continue;
+          }
+          s = await r.json();
+        } catch (err) {
+          await new Promise(res => setTimeout(res, 2000));
+          continue;
+        }
+        updateProgress(s.stage, s.message);
+        if (s.status === 'done') {
+          await loadResults(scanId);
+          return;
+        }
+        if (s.status === 'failed') {
+          showError(s.error || 'unknown error');
+          return;
+        }
+        await new Promise(res => setTimeout(res, 2000));
+      }
+    }
+
+    // ----- Load + render results -----
+    let allFindings = [];
+
+    async function loadResults(scanId) {
+      let result;
+      try {
+        const r = await fetch('/scan/' + scanId + '/result');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        result = await r.json();
+      } catch (err) {
+        showError('Could not load result: ' + err.message);
+        return;
+      }
+
+      document.getElementById('resultAppName').textContent = result.app_name || '(unknown)';
+      document.getElementById('score-value').textContent = result.cra_score;
+
+      // Color the score circle by band.
+      const circle = document.getElementById('scoreCircle');
+      circle.classList.remove('score-red', 'score-orange', 'score-green');
+      const warning = document.getElementById('scoreWarning');
+      if (result.cra_score >= 80) {
+        circle.classList.add('score-green');
+        warning.textContent = 'Buen nivel (objetivo: > 80)';
+        warning.style.background = '#D4EDDA';
+        warning.style.color = '#155724';
+      } else if (result.cra_score >= 50) {
+        circle.classList.add('score-orange');
+        warning.textContent = 'Necesita mejoras (objetivo: > 80)';
+        warning.style.background = '#FFF3CD';
+        warning.style.color = '#856404';
+      } else {
+        circle.classList.add('score-red');
+        warning.textContent = 'Critico: muchos findings de alta severidad';
+        warning.style.background = '#F8D7DA';
+        warning.style.color = '#721C24';
+      }
+
+      // Render MASVS category breakdown.
+      renderMasvs(result.findings || [], result.categories_covered || []);
+
+      // Render findings + filter tabs.
+      allFindings = (result.findings || []).slice().sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
+      renderFilterTabs(allFindings);
+      renderFindings(allFindings, 'all');
+
+      // Top finding -> AI summary box.
+      if (allFindings.length > 0) {
+        const top = allFindings[0];
+        const aiBox = document.getElementById('aiBox');
+        aiBox.style.display = 'block';
+        document.getElementById('aiBoxText').textContent =
+          (top.explanation || top.title) + (top.remediation ? '  Remediacion: ' + top.remediation : '');
+      }
+
+      document.getElementById('findingsTitle').textContent =
+        'Findings (' + allFindings.length + ' encontrados)';
+      document.getElementById('download-pdf').href = '/scan/' + scanId + '/report';
+      document.getElementById('download-json').href = '/scan/' + scanId + '/result';
+      document.getElementById('analysisMeta').textContent =
+        'Analisis completado en ' + (result.duration_seconds ? result.duration_seconds.toFixed(1) : '?') +
+        ' s | Paquete: ' + (result.package_name || '(unknown)') +
+        ' | apk_hash=' + (result.apk_hash || '').slice(0, 12);
+
+      showView('results');
+    }
+
+    function severityRank(sev) {
+      return { high: 3, medium: 2, low: 1, info: 0 }[sev] || 0;
+    }
+
+    function severityClass(sev) {
+      return { high: 'alto', medium: 'medio', low: 'bajo', info: 'info' }[sev] || 'info';
+    }
+
+    function severityLabel(sev) {
+      return { high: 'ALTO', medium: 'MEDIO', low: 'BAJO', info: 'INFO' }[sev] || sev.toUpperCase();
+    }
+
+    function severityColor(sev) {
+      return { high: 'var(--danger)', medium: 'var(--orange)', low: 'var(--warning)', info: 'var(--text-light)' }[sev] || 'var(--text-light)';
+    }
+
+    function renderMasvs(findings, categoriesCovered) {
+      const masvsList = document.getElementById('masvsList');
+      clear(masvsList);
+      const allCats = [
+        'MASVS-STORAGE', 'MASVS-CRYPTO', 'MASVS-NETWORK', 'MASVS-AUTH',
+        'MASVS-PLATFORM', 'MASVS-CODE', 'MASVS-RESILIENCE', 'MASVS-PRIVACY'
+      ];
+      const counts = {};
+      const worstSev = {};
+      for (const f of findings) {
+        counts[f.masvs_category] = (counts[f.masvs_category] || 0) + 1;
+        if (!worstSev[f.masvs_category] || severityRank(f.severity) > severityRank(worstSev[f.masvs_category])) {
+          worstSev[f.masvs_category] = f.severity;
+        }
+      }
+      for (const cat of allCats) {
+        const row = el('div', { cls: 'masvs-row' });
+        const covered = categoriesCovered.includes(cat);
+        if (!covered) {
+          row.classList.add('na');
+          row.appendChild(el('span', { text: cat }));
+          row.appendChild(el('span', { text: '-' }));
+          row.appendChild(el('span', { text: 'N/A' }));
+        } else {
+          const count = counts[cat] || 0;
+          let color = 'var(--success)';
+          let label = 'OK';
+          if (count > 0) {
+            const sev = worstSev[cat];
+            color = severityColor(sev);
+            const raw = severityLabel(sev);
+            label = raw.charAt(0) + raw.slice(1).toLowerCase();
+          }
+          row.appendChild(el('span', { text: cat }));
+          row.appendChild(el('span', { cls: 'count', style: 'background:' + color, text: String(count) }));
+          row.appendChild(el('span', { style: 'color:' + color + ';font-weight:700', text: label }));
+        }
+        masvsList.appendChild(row);
+      }
+    }
+
+    function renderFilterTabs(findings) {
+      const tabs = document.getElementById('filterTabs');
+      const counts = { all: findings.length, high: 0, medium: 0, low: 0, info: 0 };
+      for (const f of findings) counts[f.severity] = (counts[f.severity] || 0) + 1;
+      const order = [
+        ['all', 'Todos'],
+        ['high', 'Alto'],
+        ['medium', 'Medio'],
+        ['low', 'Bajo'],
+      ];
+      clear(tabs);
+      for (const [key, label] of order) {
+        const btn = el('button', {
+          cls: 'filter-tab' + (key === 'all' ? ' active' : ''),
+          text: label + ' (' + (counts[key] || 0) + ')',
+        });
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+          btn.classList.add('active');
+          renderFindings(allFindings, key);
+        });
+        tabs.appendChild(btn);
+      }
+    }
+
+    function renderFindings(findings, filter) {
+      const list = document.getElementById('findingsList');
+      clear(list);
+      const subset = filter === 'all' ? findings : findings.filter(f => f.severity === filter);
+      if (subset.length === 0) {
+        list.appendChild(el('p', {
+          style: 'color:var(--text-light);padding:12px 0',
+          text: 'No hay findings en esta categoria.',
+        }));
+        return;
+      }
+      for (const f of subset) {
+        const row = el('div', { cls: 'finding-row' });
+        const header = el('div', { cls: 'finding-header' });
+        header.appendChild(el('span', {
+          cls: 'badge badge-' + severityClass(f.severity),
+          text: severityLabel(f.severity),
+        }));
+        header.appendChild(el('span', { cls: 'title', text: f.title }));
+        row.appendChild(header);
+
+        const cra = (f.cra_articles && f.cra_articles.length) ? ' | CRA: ' + f.cra_articles.join(', ') : '';
+        row.appendChild(el('div', {
+          cls: 'finding-meta',
+          text: f.masvs_category + cra + ' | ' + (f.description || ''),
+        }));
+        if (f.remediation) {
+          row.appendChild(el('div', {
+            cls: 'finding-fix',
+            text: 'Remediacion: ' + f.remediation,
+          }));
+        }
+        list.appendChild(row);
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('errorText').textContent = msg;
+      showView('error');
+    }
+
+    document.getElementById('backToUpload').addEventListener('click', () => location.reload());
+    document.getElementById('analyzeAnother').addEventListener('click', () => location.reload());
+    document.getElementById('errorRetry').addEventListener('click', () => location.reload());
+  </script>
+</body>
+</html>
