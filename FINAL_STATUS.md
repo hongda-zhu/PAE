@@ -53,10 +53,12 @@ Browser: http://localhost:9787
 
 ## Repo state
 
-- Branch: master
-- Commits: 15 (Phase 0-7 + CI workflow + docs sync)
+- Branch: master (tracking `origin/master`)
+- Commits: 17 (Phase 0-7 + CI workflow + docs sync + port change + post-push sync)
 - Tests: 66 passing, `ruff check` clean
-- Remote: none configured (local-only)
+- Remote: `git@github.com:hongda-zhu/PAE.git` (pushed 2026-05-11)
+- Author identity: `Hongda Zhu <hongdazhubcn@gmail.com>` for all commits
+- CI: GitHub Actions workflow at `.github/workflows/test.yml` runs on every push
 - CI: `.github/workflows/test.yml` runs `ruff check` + `pytest --deselect tests/test_report.py`
   (deselect because report tests need Docker; CI uses a clean Ubuntu runner)
 
