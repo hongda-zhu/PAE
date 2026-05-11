@@ -154,3 +154,102 @@ def test_list_scans_scopes_by_authenticated_key(client, tmp_path):
 def test_list_scans_rejects_invalid_api_key(client):
     resp = client.get("/scans", headers={"Authorization": "ikusa_sk_NEVER_EXISTS"})
     assert resp.status_code == 401
+
+
+def test_account_endpoint_anonymous(client):
+    resp = client.get("/account")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["user_id"] == "anonymous"
+    assert data["tier"] == "free"
+    assert data["scans_cap"] == 3
+
+
+def test_account_endpoint_with_known_key(client, monkeypatch, tmp_path):
+    # Point api_keys_path at a temp store with a known key.
+    from ikusa.auth import ApiKey, save_keys
+
+    store = tmp_path / "keys.yaml"
+    save_keys({"k1": ApiKey(key="k1", user_id="alice", tier="team", credits=2)}, store)
+    monkeypatch.setenv("API_KEYS_PATH", str(store))
+
+    resp = client.get("/account", headers={"Authorization": "k1"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["user_id"] == "alice"
+    assert data["tier"] == "team"
+    assert data["scans_cap"] == 25
+    assert data["credits"] == 2
+
+
+def test_scan_returns_402_when_tier_exhausted(client, monkeypatch, tmp_path):
+    """A real key with 0 credits and monthly cap reached gets 402 on the next scan."""
+    from datetime import date
+
+    from ikusa.auth import ApiKey, save_keys
+
+    store = tmp_path / "keys.yaml"
+    today = date.today().strftime("%Y-%m")
+    save_keys(
+        {
+            "k_exhausted": ApiKey(
+                key="k_exhausted",
+                user_id="bob",
+                tier="free",
+                credits=0,
+                scans_this_month=3,  # already at the free-tier cap
+                month_anchor=today,
+            )
+        },
+        store,
+    )
+    monkeypatch.setenv("API_KEYS_PATH", str(store))
+
+    apk_path = tmp_path / "dummy.apk"
+    apk_path.write_bytes(b"FAKE")
+    with apk_path.open("rb") as f:
+        resp = client.post(
+            "/scan",
+            files={"file": ("dummy.apk", f, "application/octet-stream")},
+            headers={"Authorization": "k_exhausted"},
+        )
+    assert resp.status_code == 402
+    assert "exhausted" in resp.json()["detail"].lower()
+
+
+def test_scan_consumes_credit_when_monthly_full(client, monkeypatch, tmp_path):
+    """When the monthly cap is hit but credits remain, scan succeeds and credits decrement."""
+    from datetime import date
+
+    from ikusa.auth import ApiKey, load_keys, save_keys
+
+    store = tmp_path / "keys.yaml"
+    today = date.today().strftime("%Y-%m")
+    save_keys(
+        {
+            "k_paid": ApiKey(
+                key="k_paid",
+                user_id="charlie",
+                tier="free",
+                credits=2,
+                scans_this_month=3,  # monthly cap hit
+                month_anchor=today,
+            )
+        },
+        store,
+    )
+    monkeypatch.setenv("API_KEYS_PATH", str(store))
+
+    apk_path = tmp_path / "dummy.apk"
+    apk_path.write_bytes(b"FAKE")
+    with apk_path.open("rb") as f:
+        resp = client.post(
+            "/scan",
+            files={"file": ("dummy.apk", f, "application/octet-stream")},
+            headers={"Authorization": "k_paid"},
+        )
+    assert resp.status_code == 200
+    # Credit was decremented; monthly counter stays at the cap.
+    after = load_keys(store)["k_paid"]
+    assert after.credits == 1
+    assert after.scans_this_month == 3

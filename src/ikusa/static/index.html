@@ -26,6 +26,20 @@
     .header .nav a { font-size: 14px; color: var(--text-sec); cursor: pointer; }
     .header .nav a:hover { color: var(--accent); }
     .header .scan-id { margin-left: auto; font-family: monospace; font-size: 12px; color: var(--text-light); }
+    .tier-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #f0f0f0;
+      margin-left: 12px;
+      color: #555;
+    }
+    .tier-badge.tier-free { background: #f5f5f5; }
+    .tier-badge.tier-team { background: #cfe8ff; }
+    .tier-badge.tier-business { background: #ffe8b3; }
+    .tier-badge.tier-enterprise { background: #d4f5d4; }
 
     /* Footer */
     .footer { text-align: center; padding: 16px; color: var(--text-light); font-size: 12px; border-top: 1px solid var(--border); margin-top: 40px; }
@@ -164,6 +178,7 @@
       <a href="#" id="navHistory">Historial</a>
     </nav>
     <span class="scan-id" id="scanIdLabel"></span>
+    <span class="tier-badge" id="tierBadge"></span>
   </header>
 
   <!-- VIEW 1: UPLOAD -->
@@ -404,9 +419,18 @@
       fd.append('file', file);
       fd.append('tier', tier);
 
+      const headers = {};
+      const stored = localStorage.getItem('ikusa_api_key');
+      if (stored) headers['Authorization'] = stored;
+
       let data;
       try {
-        const resp = await fetch('/scan', { method: 'POST', body: fd });
+        const resp = await fetch('/scan', { method: 'POST', body: fd, headers });
+        if (resp.status === 402) {
+          const payload = await resp.json();
+          showError('Sin scans disponibles. ' + (payload.detail || 'Compra creditos o cambia de plan.'));
+          return;
+        }
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         data = await resp.json();
       } catch (err) {
@@ -712,6 +736,30 @@
     document.getElementById('backToUpload').addEventListener('click', () => location.reload());
     document.getElementById('analyzeAnother').addEventListener('click', () => location.reload());
     document.getElementById('errorRetry').addEventListener('click', () => location.reload());
+
+    // ----- Tier badge -----
+    async function loadAccount() {
+      const headers = {};
+      const stored = localStorage.getItem('ikusa_api_key');
+      if (stored) headers['Authorization'] = stored;
+
+      try {
+        const resp = await fetch('/account', { headers });
+        if (!resp.ok) return;
+        const acc = await resp.json();
+        const badge = document.getElementById('tierBadge');
+        let label = acc.tier.toUpperCase() + ' · ' + acc.scans_this_month + '/' + acc.scans_cap;
+        if (acc.credits > 0) {
+          label += ' · +' + acc.credits + ' cred';
+        }
+        badge.textContent = label;
+        badge.className = 'tier-badge tier-' + acc.tier;
+      } catch (e) {
+        // Silent fail; not fatal for demo.
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', loadAccount);
   </script>
 </body>
 </html>

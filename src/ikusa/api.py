@@ -14,7 +14,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from ikusa.auth import ApiKey, consume_credit, require_api_key
+from ikusa.auth import SCANS_PER_MONTH, ApiKey, consume_credit, require_api_key
 from ikusa.config import get_settings
 from ikusa.pipeline import run_scan_pipeline
 from ikusa.state import ScanState, list_states_for_user, load_state, save_state
@@ -84,6 +84,23 @@ async def list_scans(
     user_id = None if api_key.user_id == "anonymous" else api_key.user_id
     states = list_states_for_user(settings.scan_storage, user_id)
     return JSONResponse([s.model_dump(mode="json") for s in states])
+
+
+@app.get("/account")
+async def account_info(api_key: ApiKey = Depends(require_api_key)):
+    """Return tier, quota cap, used, and credits for the authenticated key.
+
+    Anonymous keys get the in-memory fallback state (free tier, 0 used, 0 credits).
+    """
+    cap = SCANS_PER_MONTH[api_key.tier]
+    return {
+        "user_id": api_key.user_id,
+        "tier": api_key.tier,
+        "scans_this_month": api_key.scans_this_month,
+        "scans_cap": cap,
+        "credits": api_key.credits,
+        "month_anchor": api_key.month_anchor,
+    }
 
 
 @app.get("/scan/{scan_id}")
