@@ -30,7 +30,7 @@ docker logs ikusa-mobsf 2>&1 | grep -m1 "REST API Key" | awk '{print $NF}'
 make run
 ```
 
-Open `http://localhost:9000`, drop an APK in the dropzone, wait, download the
+Open `http://localhost:9787`, drop an APK in the dropzone, wait, download the
 PDF. CPU triage with Qwen2.5-7B takes ~3 minutes for 4-8 findings.
 
 ## Test
@@ -42,7 +42,7 @@ make test                    # unit + integration suite
 ## Architecture
 
 ```
-Browser -> FastAPI (uvicorn :9000)
+Browser -> FastAPI (uvicorn :9787)
                 |
            BackgroundTask
           /         |         \              \

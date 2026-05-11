@@ -7,7 +7,7 @@ test:
 	uv run pytest -v
 
 run:
-	uv run uvicorn ikusa.api:app --reload --port 9000
+	uv run uvicorn ikusa.api:app --reload --port 9787
 
 mobsf-up:
 	docker compose up -d mobsf

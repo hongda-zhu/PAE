@@ -2,7 +2,7 @@
 
 ## What works end-to-end
 
-- Upload APK via web UI (`http://localhost:9000`) or `curl POST /scan`
+- Upload APK via web UI (`http://localhost:9787`) or `curl POST /scan`
 - MobSF static analysis (Docker, port 8000)
 - MASVS classification (STORAGE / CRYPTO / NETWORK / ...)
 - LLM triage via local Ollama qwen2.5:7b (port 11434)
@@ -18,7 +18,7 @@
 ## Architecture (overview)
 
 ```
-Browser ---HTTP---> FastAPI (uvicorn :9000)
+Browser ---HTTP---> FastAPI (uvicorn :9787)
                        |
                   BackgroundTask
                   /        \         \                \
@@ -36,10 +36,10 @@ make install            # uv sync --extra dev
 make mobsf-up           # docker compose up -d mobsf
 make ollama-up          # docker compose up -d ollama
 make weasyprint-build   # docker build ikusa-weasyprint:latest
-make run                # uv run uvicorn ikusa.api:app --port 9000
+make run                # uv run uvicorn ikusa.api:app --port 9787
 ```
 
-Browser: http://localhost:9000
+Browser: http://localhost:9787
 
 ## Known gaps (deferred)
 
@@ -77,8 +77,8 @@ Browser: http://localhost:9000
 
 ```bash
 cd apkplan/ikusa-prototype
-make run                           # starts uvicorn on :9000
-# Browser: http://localhost:9000
+make run                           # starts uvicorn on :9787
+# Browser: http://localhost:9787
 # Drop in: ../test_apks/insecurebankv2.apk
 # Pick tier "Compliance PDF"
 # Wait ~3 min on the "Triage IA" stage (live message updates every 2s)
