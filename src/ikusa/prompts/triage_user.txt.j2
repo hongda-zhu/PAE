@@ -1,0 +1,34 @@
+App: {{ app_name }}
+Package: {{ package_name }}
+
+Findings detected by SAST (each is REAL, do not question detection):
+{% for f in findings %}
+--- Finding {{ loop.index }} ---
+id: {{ f.id }}
+title: {{ f.title }}
+severity: {{ f.severity.value }}
+masvs_category: {{ f.masvs_category.value }}
+description: {{ f.description }}
+file_path: {{ f.file_path or "N/A" }}
+cwe: {{ f.cwe or "N/A" }}
+{% endfor %}
+
+Available CRA Annex I requirement IDs (you may only cite IDs from this list):
+{% for cat, articles in cra_lookup.items() %}
+- {{ cat }}:
+{% for art in articles %}  - {{ art.id }} ({{ art.title }})
+{% endfor %}
+{% endfor %}
+
+Return JSON exactly matching this shape:
+{
+  "triaged": [
+    {
+      "id": "<finding id, copied verbatim>",
+      "priority": 1,
+      "explanation": "<1-2 frases en castellano>",
+      "remediation": "<1 frase en castellano>",
+      "cra_articles": ["Annex I (1)(h)"]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "triaged": [
+    {
+      "id": "APPSEC-0",
+      "priority": 1,
+      "explanation": "Se detectaron credenciales o secretos almacenados en texto plano dentro del APK, accesibles a cualquiera con acceso al binario.",
+      "remediation": "Migrar a EncryptedSharedPreferences o al Android Keystore.",
+      "cra_articles": ["Annex I (1)(h)"]
+    },
+    {
+      "id": "MANIFEST-app_allowbackup",
+      "priority": 2,
+      "explanation": "El backup esta habilitado sin restricciones, permitiendo exfiltrar datos via adb.",
+      "remediation": "Establecer android:allowBackup=false o definir fullBackupContent.",
+      "cra_articles": ["Annex I (1)(h)"]
+    }
+  ]
+}
