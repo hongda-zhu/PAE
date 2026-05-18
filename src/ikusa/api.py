@@ -134,7 +134,12 @@ async def get_scan_result(scan_id: str):
     result_file = settings.scan_storage / scan_id / "result.json"
     if not result_file.exists():
         raise HTTPException(status_code=404, detail="scan result not available yet")
-    return FileResponse(result_file, media_type="application/json")
+    return FileResponse(
+        result_file,
+        media_type="application/json",
+        filename=f"ikusa_result_{scan_id}.json",
+        content_disposition_type="attachment",
+    )
 
 
 @app.get("/scan/{scan_id}/report")
