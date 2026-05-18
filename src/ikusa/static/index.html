@@ -161,9 +161,35 @@
     .error-card h2 { color: var(--danger); margin-bottom: 12px; }
     .error-card pre { background: white; padding: 12px; border-radius: 6px; font-size: 13px; color: var(--text); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
 
+    /* ======= DOCS VIEW ======= */
+    .docs-hero { text-align: center; margin-bottom: 24px; }
+    .docs-hero h1 { font-size: 28px; margin-bottom: 8px; }
+    .docs-hero p { color: var(--text-sec); font-size: 16px; }
+    .docs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .docs-grid .card.full { grid-column: 1 / -1; }
+    .docs-section h3 { font-size: 18px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+    .docs-section h3 .num { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: white; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+    .docs-section p { color: var(--text); font-size: 14px; line-height: 1.7; margin-bottom: 12px; }
+    .docs-section ul { list-style: none; margin-bottom: 12px; }
+    .docs-section li { font-size: 14px; line-height: 1.6; padding: 7px 0 7px 18px; position: relative; border-bottom: 1px solid var(--border); }
+    .docs-section li:last-child { border-bottom: none; }
+    .docs-section li::before { content: '\2022'; color: var(--accent); position: absolute; left: 2px; font-weight: bold; }
+    .docs-section code { font-family: monospace; font-size: 13px; background: #EEF3F8; color: var(--accent); padding: 1px 6px; border-radius: 4px; }
+    .docs-pre { font-family: monospace; font-size: 13px; color: var(--text); background: #F8F9FA; border: 1px solid var(--border); padding: 14px 16px; border-radius: 8px; overflow-x: auto; white-space: pre; line-height: 1.65; }
+    .docs-pre .cmt { color: var(--text-light); }
+    .docs-note { background: #F0F7FF; border: 1px solid var(--accent); border-radius: 8px; padding: 12px 16px; font-size: 13px; line-height: 1.7; margin-top: 4px; }
+    .api-row { display: flex; align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .api-row:last-child { border-bottom: none; }
+    .api-method { font-family: monospace; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; min-width: 46px; text-align: center; flex-shrink: 0; }
+    .api-method.get { background: #d4f5d4; color: #1d6f1d; }
+    .api-method.post { background: #cfe8ff; color: #1a5a8a; }
+    .api-row code { font-family: monospace; font-size: 13px; color: var(--text); font-weight: 600; }
+    .api-row .api-desc { color: var(--text-sec); font-size: 13px; }
+
     /* Responsive */
     @media (max-width: 768px) {
       .results-grid { grid-template-columns: 1fr; }
+      .docs-grid { grid-template-columns: 1fr; }
       .tiers { flex-direction: column; align-items: center; }
     }
   </style>
@@ -176,6 +202,7 @@
     <nav class="nav">
       <a href="#" id="navHome">Inicio</a>
       <a href="#" id="navHistory">Historial</a>
+      <a href="#" id="navDocs">Documentacion</a>
     </nav>
     <span class="scan-id" id="scanIdLabel"></span>
     <span class="tier-badge" id="tierBadge"></span>
@@ -331,6 +358,79 @@
       <div class="action-bar">
         <button class="btn btn-primary" id="errorRetry">Volver a empezar</button>
       </div>
+    </div>
+  </main>
+
+  <!-- VIEW 6: DOCUMENTATION -->
+  <main id="view-docs" class="view">
+    <div class="docs-hero">
+      <h1>Documentacion</h1>
+      <p>Como usar IKUSA: web, linea de comandos, MCP y API REST</p>
+    </div>
+
+    <div class="docs-grid">
+      <div class="card docs-section full">
+        <h3><span class="num">1</span> Uso web</h3>
+        <p>Arrastra un <code>.apk</code> o <code>.aab</code> a la zona de subida
+          (max 150 MB), elige el tipo de analisis y pulsa "Analizar APK". El
+          analisis corre en segundo plano: no cierres la pestana.</p>
+        <ul>
+          <li><strong>SAST sin LLM</strong> &mdash; solo analisis estatico MobSF. El mas rapido.</li>
+          <li><strong>SAST + IA (LLM)</strong> &mdash; anade triage con IA: prioridad y explicacion en lenguaje claro.</li>
+          <li><strong>MASVS/CRA Report</strong> &mdash; lo anterior mas el PDF de compliance descargable.</li>
+        </ul>
+        <div class="docs-note">El triage con IA tarda <strong>~2-3 minutos en
+          CPU</strong> (segundos con GPU). El <strong>CRA Readiness Score</strong>
+          va de 0 a 100: cuanto mas alto, mas cerca de cumplir.</div>
+      </div>
+
+      <div class="card docs-section">
+        <h3><span class="num">2</span> CLI</h3>
+        <p>Para integrar en CI/CD. Devuelve codigo de salida <code>2</code> si
+          hay findings por encima del umbral indicado.</p>
+        <div class="docs-pre">uv run ikusa-cli login --api-key ikusa_sk_demo
+uv run ikusa-cli scan app.apk -o report.pdf --fail-on alto
+<span class="cmt"># Exit 0 = ok, 2 = findings por encima del umbral</span></div>
+      </div>
+
+      <div class="card docs-section">
+        <h3><span class="num">3</span> MCP (asistentes de IA)</h3>
+        <p>Servidor JSON-RPC sobre stdio para clientes compatibles con MCP.
+          Expone 4 tools: <code>scan_apk</code>, <code>get_scan_status</code>,
+          <code>get_scan_findings</code>, <code>list_scans</code>.</p>
+        <div class="docs-pre">uv run ikusa-mcp</div>
+        <p style="margin-top:12px">Registro en el cliente MCP (Cursor, etc.):</p>
+        <div class="docs-pre">{
+  "mcpServers": {
+    "ikusa": {
+      "command": "uv",
+      "args": ["run", "ikusa-mcp"],
+      "cwd": "/ruta/a/ikusa-prototype"
+    }
+  }
+}</div>
+      </div>
+
+      <div class="card docs-section full">
+        <h3><span class="num">4</span> API REST</h3>
+        <div class="api-row"><span class="api-method post">POST</span><code>/scan</code><span class="api-desc">sube APK (campo <code>file</code>) + <code>tier</code>; devuelve <code>scan_id</code></span></div>
+        <div class="api-row"><span class="api-method get">GET</span><code>/scan/{id}</code><span class="api-desc">estado del scan (status / stage / message)</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><code>/scan/{id}/result</code><span class="api-desc">findings + cra_score en JSON</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><code>/scan/{id}/report</code><span class="api-desc">PDF de compliance</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><code>/scans</code><span class="api-desc">historial del usuario</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><code>/account</code><span class="api-desc">tier y cuota</span></div>
+        <p style="margin-top:14px">Ejemplo:</p>
+        <div class="docs-pre">curl -F file=@app.apk -F tier=compliance \
+     -H "Authorization: ikusa_sk_demo" \
+     http://localhost:9787/scan</div>
+        <div class="docs-note">Autenticacion opcional con la cabecera
+          <code>Authorization: ikusa_sk_*</code>. Sin clave se usa el tier
+          free anonimo.</div>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn btn-outline" id="docsBack">Volver al inicio</button>
     </div>
   </main>
 
@@ -771,6 +871,11 @@
       e.preventDefault();
       loadHistory();
     });
+    document.getElementById('navDocs').addEventListener('click', e => {
+      e.preventDefault();
+      showView('docs');
+    });
+    document.getElementById('docsBack').addEventListener('click', () => showView('upload'));
     document.getElementById('historyNewScan').addEventListener('click', () => showView('upload'));
 
     document.getElementById('backToUpload').addEventListener('click', () => location.reload());
