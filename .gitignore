@@ -49,3 +49,4 @@ GOOGLE_FORMS*.md
 .vscode/
 *.swp
 FINAL_STATUS.md
+.gstack/
