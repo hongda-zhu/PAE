@@ -46,6 +46,9 @@ async def scan(
     api_key: ApiKey = Depends(require_api_key),
 ):
     """Accept an APK upload, kick off the pipeline, return scan_id immediately."""
+    if tier != "compliance":
+        raise HTTPException(status_code=400, detail="Only 'compliance' scan tier is supported")
+
     if not file.filename:
         raise HTTPException(status_code=400, detail="filename required")
 
@@ -233,8 +236,8 @@ async def payment_mock_page(session: str):
   <div class="container">
     <div class="mock-banner">MOCK CHECKOUT -- sin cargo real</div>
     <h1>IKUSA Compliance Scanner</h1>
-    <p class="product">{product['label']}</p>
-    <p class="amount">${product['amount_cents'] / 100:.2f} USD</p>
+    <p class="product">{product["label"]}</p>
+    <p class="amount">${product["amount_cents"] / 100:.2f} USD</p>
 
     <div class="row">
       <label>Numero de tarjeta</label>
@@ -250,7 +253,7 @@ async def payment_mock_page(session: str):
     <form method="post" action="/payment/webhook">
       <input type="hidden" name="event_type" value="checkout.session.completed">
       <input type="hidden" name="session_id" value="{sess.session_id}">
-      <button type="submit">Pagar ${product['amount_cents'] / 100:.2f}</button>
+      <button type="submit">Pagar ${product["amount_cents"] / 100:.2f}</button>
     </form>
 
     <p class="note">Powered by Stripe (mock).</p>

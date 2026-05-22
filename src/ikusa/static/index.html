@@ -203,6 +203,7 @@
       <a href="#" id="navHome">Inicio</a>
       <a href="#" id="navHistory">Historial</a>
       <a href="#" id="navDocs">Documentacion</a>
+
     </nav>
     <span class="scan-id" id="scanIdLabel"></span>
     <span class="tier-badge" id="tierBadge"></span>
@@ -225,26 +226,14 @@
         <p id="fileName" style="margin-top:8px;font-weight:600;color:var(--accent);display:none"></p>
       </label>
 
-      <p class="tier-select">Selecciona el tipo de analisis:</p>
-      <div class="tiers">
-        <div class="tier-card" data-color="teal" data-tier="basico">
-          <div class="price">$0.50</div>
-          <div class="name">Scan Basico</div>
-          <div class="desc">SAST sin LLM</div>
-          <input type="radio" name="tier" value="basico">
-        </div>
-        <div class="tier-card selected" data-color="blue" data-tier="completo">
-          <div class="recommended">RECOMENDADO</div>
-          <div class="price">$2.00</div>
-          <div class="name">Scan Completo</div>
-          <div class="desc">SAST + IA (LLM)</div>
-          <input type="radio" name="tier" value="completo" checked>
-        </div>
-        <div class="tier-card" data-color="green" data-tier="compliance">
+      <p class="tier-select">Tipo de analisis:</p>
+      <div class="tiers" style="justify-content: center;">
+        <div class="tier-card selected" data-color="green" data-tier="compliance" style="width: 320px; cursor: default;">
+          <div class="recommended">PLAN UNICO</div>
           <div class="price">$5.00</div>
           <div class="name">Compliance PDF</div>
-          <div class="desc">MASVS/CRA Report</div>
-          <input type="radio" name="tier" value="compliance">
+          <div class="desc">Auditoria completa (SAST + IA + PDF)</div>
+          <input type="radio" name="tier" value="compliance" checked style="display: none;">
         </div>
       </div>
 
@@ -372,12 +361,9 @@
       <div class="card docs-section full">
         <h3><span class="num">1</span> Uso web</h3>
         <p>Arrastra un <code>.apk</code> o <code>.aab</code> a la zona de subida
-          (max 150 MB), elige el tipo de analisis y pulsa "Analizar APK". El
-          analisis corre en segundo plano: no cierres la pestana.</p>
+          (max 150 MB) y pulsa "Analizar APK". El analisis corre en segundo plano: no cierres la pestana.</p>
         <ul>
-          <li><strong>SAST sin LLM</strong> &mdash; solo analisis estatico MobSF. El mas rapido.</li>
-          <li><strong>SAST + IA (LLM)</strong> &mdash; anade triage con IA: prioridad y explicacion en lenguaje claro.</li>
-          <li><strong>MASVS/CRA Report</strong> &mdash; lo anterior mas el PDF de compliance descargable.</li>
+          <li><strong>Compliance PDF</strong> &mdash; Auditoria de seguridad completa que combina analisis estatico con MobSF, triage avanzado mediante IA (LLM) y la generacion automatica del reporte en formato PDF compatible con MASVS/CRA.</li>
         </ul>
         <div class="docs-note">El triage con IA tarda <strong>~2-3 minutos en
           CPU</strong> (segundos con GPU). El <strong>CRA Readiness Score</strong>
@@ -433,6 +419,8 @@ uv run ikusa-cli scan app.apk -o report.pdf --fail-on alto
       <button class="btn btn-outline" id="docsBack">Volver al inicio</button>
     </div>
   </main>
+
+
 
   <footer class="footer">Prototipo IKUSA Compliance Scanner | MASVS v2.1 + CRA Annex I</footer>
 
@@ -903,6 +891,8 @@ uv run ikusa-cli scan app.apk -o report.pdf --fail-on alto
         // Silent fail; not fatal for demo.
       }
     }
+
+
 
     window.addEventListener('DOMContentLoaded', loadAccount);
   </script>
