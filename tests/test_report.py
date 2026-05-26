@@ -1,16 +1,11 @@
 """Tests for the PDF report generator.
 
-These tests run the real WeasyPrint Docker image -- they require that the
-image has been built (`make weasyprint-build`). If Docker is not available
-or the image is missing, the tests are skipped with a clear reason.
+WeasyPrint runs in-process; no Docker image or external service is needed.
+The host (or container) must have libpango / libcairo / libgdk-pixbuf
+installed, which is handled by the app image.
 """
 
 from __future__ import annotations
-
-import shutil
-import subprocess
-
-import pytest
 
 from ikusa.models import (
     MasvsCategory,
@@ -19,27 +14,6 @@ from ikusa.models import (
     TriagedFinding,
 )
 from ikusa.report import generate_pdf
-
-
-def _docker_available() -> bool:
-    if shutil.which("docker") is None:
-        return False
-    try:
-        result = subprocess.run(
-            ["docker", "image", "inspect", "ikusa-weasyprint:latest"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return False
-    return result.returncode == 0
-
-
-pytestmark = pytest.mark.skipif(
-    not _docker_available(),
-    reason="ikusa-weasyprint:latest Docker image not available -- run `make weasyprint-build`",
-)
 
 
 def _triaged(idx: int, sev: Severity, priority: int = 1) -> TriagedFinding:

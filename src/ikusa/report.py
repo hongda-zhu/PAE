@@ -1,16 +1,12 @@
 """PDF compliance report generator.
 
-WeasyPrint runs in a sandboxed Docker container (``ikusa-weasyprint:latest``)
-so the host does not need libpango / libgdk-pixbuf installed. This module
-renders the Jinja2 template to HTML, writes it to a temp dir, then shells
-out to ``docker run`` to convert HTML -> PDF.
+WeasyPrint is invoked in-process. The runtime image installs the required
+Cairo / Pango / GdkPixbuf libraries via apt, so no external Docker call is
+needed to render HTML -> PDF.
 """
 
 from __future__ import annotations
 
-import shutil
-import subprocess
-import tempfile
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -28,7 +24,6 @@ from ikusa.models import (
 _BASE = Path(__file__).parent
 _TEMPLATES = _BASE / "templates"
 _STATIC = _BASE / "static"
-_DOCKER_IMAGE = "ikusa-weasyprint:latest"
 
 _ENV = Environment(
     loader=FileSystemLoader(_TEMPLATES),
@@ -130,41 +125,17 @@ def _render_html(result: ScanResult) -> str:
     )
 
 
-def _run_weasyprint_docker(html_path: Path, pdf_path: Path) -> None:
-    """Invoke the WeasyPrint Docker image to render HTML -> PDF."""
-    if shutil.which("docker") is None:
-        raise PdfRenderError("docker is not on PATH; cannot render PDF")
-
-    workdir = html_path.parent.resolve()
-    cmd = [
-        "docker",
-        "run",
-        "--rm",
-        "-v",
-        f"{workdir}:/work",
-        _DOCKER_IMAGE,
-        f"/work/{html_path.name}",
-        f"/work/{pdf_path.name}",
-    ]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-    if proc.returncode != 0:
-        raise PdfRenderError(
-            f"WeasyPrint container exited {proc.returncode}: {proc.stderr.strip()}"
-        )
-
-
 def generate_pdf(result: ScanResult, output_path: Path) -> Path:
     """Render a ScanResult into a compliance PDF at ``output_path``."""
+    from weasyprint import HTML
+
     html_str = _render_html(result)
     output_path = output_path.resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        tmp = Path(tmp_dir)
-        html_path = tmp / "report.html"
-        pdf_path = tmp / "report.pdf"
-        html_path.write_text(html_str, encoding="utf-8")
-        _run_weasyprint_docker(html_path, pdf_path)
-        shutil.copy2(pdf_path, output_path)
+    try:
+        HTML(string=html_str, base_url=str(_STATIC)).write_pdf(target=str(output_path))
+    except Exception as exc:
+        raise PdfRenderError(f"WeasyPrint render failed: {exc}") from exc
 
     return output_path
