@@ -1,24 +1,32 @@
-# IKUSA prototype service stack.
-# Two services run side-by-side so Phase 4 can spin everything up with
-# a single `docker compose up -d`:
-#   - mobsf: static + dynamic APK analysis (REST API on :8000)
-#   - ollama: local LLM runtime for narrative generation (:11434)
+# IKUSA Compliance Scanner - full stack for one-command demo.
 #
-# Note on MobSF storage: the MobSF image runs as uid 9901 and Docker
-# named volumes are created root-owned, which makes /home/mobsf/.MobSF
-# unwritable on first boot. For the prototype we let MobSF use the
-# container-internal layer (so the API key is regenerated on every
-# `docker compose down`). Capture the key once and pin it via .env.
-# Ollama runs as root inside its image so a named volume is safe and
-# preserves the (multi-GB) downloaded model across restarts.
+# Three services:
+#   - mobsf:  static APK analysis (REST API on :8000).
+#             MOBSF_API_KEY is injected via env, so the REST key is fixed
+#             instead of regenerated on every container recreate. The app
+#             reads the same value from .env, so the two are guaranteed
+#             to match.
+#   - ollama: local LLM runtime (:11434). Model lives in the named volume
+#             so a `docker compose down` does not lose the multi-GB download.
+#   - app:    FastAPI service (:9787). Self-contained: bundles WeasyPrint,
+#             no external Docker call for PDF rendering. Waits for mobsf
+#             and ollama to be healthy before starting.
 
 services:
   mobsf:
     image: opensecurity/mobile-security-framework-mobsf:latest
     container_name: ikusa-mobsf
+    environment:
+      MOBSF_API_KEY: ${MOBSF_API_KEY:?MOBSF_API_KEY must be set in .env}
     ports:
       - "8000:8000"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
 
   ollama:
     image: ollama/ollama:latest
@@ -28,6 +36,37 @@ services:
     volumes:
       - ollama-data:/root/.ollama
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  app:
+    image: ikusa-app:latest
+    build: .
+    container_name: ikusa-app
+    depends_on:
+      mobsf:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    environment:
+      MOBSF_URL: http://mobsf:8000
+      MOBSF_API_KEY: ${MOBSF_API_KEY:?MOBSF_API_KEY must be set in .env}
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      SCAN_STORAGE: /var/lib/ikusa/scans
+    ports:
+      - "9787:9787"
+    volumes:
+      - ikusa-scans:/var/lib/ikusa/scans
+    restart: unless-stopped
 
 volumes:
   ollama-data:
+  ikusa-scans:

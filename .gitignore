@@ -13,6 +13,7 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.demo
 
 # Runtime artifacts
 /scans/
