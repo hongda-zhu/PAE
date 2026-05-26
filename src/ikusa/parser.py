@@ -74,7 +74,6 @@ KEYWORD_TO_CATEGORY: list[tuple[str, MasvsCategory]] = [
     ("external storage", MasvsCategory.STORAGE),
     ("world readable", MasvsCategory.STORAGE),
     ("world writable", MasvsCategory.STORAGE),
-
     # --- MASVS-CRYPTO ---
     ("md5", MasvsCategory.CRYPTO),
     ("sha1", MasvsCategory.CRYPTO),
@@ -95,7 +94,6 @@ KEYWORD_TO_CATEGORY: list[tuple[str, MasvsCategory]] = [
     ("janus", MasvsCategory.CRYPTO),
     ("v1 signature", MasvsCategory.CRYPTO),
     ("signature scheme", MasvsCategory.CRYPTO),
-
     # --- MASVS-NETWORK ---
     # NB: "ssl" is intentionally listed before generic "certificate" so
     # that "Insecure implementation of SSL" classifies as NETWORK rather
@@ -111,7 +109,6 @@ KEYWORD_TO_CATEGORY: list[tuple[str, MasvsCategory]] = [
     ("certificate pinning", MasvsCategory.NETWORK),
     ("no certificate validation", MasvsCategory.NETWORK),
     ("accepting all certificates", MasvsCategory.NETWORK),
-
     # --- MASVS-PLATFORM ---
     ("exported", MasvsCategory.PLATFORM),
     ("strandhogg", MasvsCategory.PLATFORM),
@@ -120,7 +117,6 @@ KEYWORD_TO_CATEGORY: list[tuple[str, MasvsCategory]] = [
     ("webview", MasvsCategory.PLATFORM),
     ("content provider", MasvsCategory.PLATFORM),
     ("broadcast receiver", MasvsCategory.PLATFORM),
-
     # --- MASVS-CODE ---
     ("debuggable", MasvsCategory.CODE),
     ("debug mode", MasvsCategory.CODE),
@@ -129,18 +125,15 @@ KEYWORD_TO_CATEGORY: list[tuple[str, MasvsCategory]] = [
     ("vulnerable os", MasvsCategory.CODE),
     ("min sdk", MasvsCategory.CODE),
     ("unpatched android", MasvsCategory.CODE),
-
     # --- MASVS-RESILIENCE ---
     ("root detection", MasvsCategory.RESILIENCE),
     ("anti-debug", MasvsCategory.RESILIENCE),
     ("tamper", MasvsCategory.RESILIENCE),
-
     # --- MASVS-AUTH ---
     ("authentication", MasvsCategory.AUTH),
     ("biometric", MasvsCategory.AUTH),
     ("credential", MasvsCategory.AUTH),
     ("session", MasvsCategory.AUTH),
-
     # --- MASVS-PRIVACY ---
     ("personal data", MasvsCategory.PRIVACY),
     ("tracker", MasvsCategory.PRIVACY),

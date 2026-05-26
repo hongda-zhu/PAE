@@ -66,9 +66,7 @@ class LLMTriageClient:
         app_name: str,
         package_name: str,
     ) -> str:
-        cra_lookup = {
-            cat.value: self._cra.articles_for(cat) for cat in MasvsCategory
-        }
+        cra_lookup = {cat.value: self._cra.articles_for(cat) for cat in MasvsCategory}
         return _USER_TEMPLATE.render(
             app_name=app_name,
             package_name=package_name,

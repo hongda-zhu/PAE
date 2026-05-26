@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IKUSA Compliance Scanner</title>
+  <style>
+    /* Reset + design tokens copied from the static mock prototype. */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --blue: #4E79A7; --orange: #F28E2B; --red: #E15759;
+      --teal: #76B7B2; --green: #59A14F; --purple: #B07AA1;
+      --bg: #F5F5F2; --white: #FFFFFF; --text: #2D3436;
+      --text-sec: #636E72; --text-light: #B2BEC3; --border: #DFE6E9;
+      --accent: #4E79A7; --success: #00B894; --warning: #FDCB6E;
+      --danger: #E15759;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    a { text-decoration: none; color: inherit; }
+
+    /* Header */
+    .header { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; height: 56px; position: sticky; top: 0; z-index: 100; }
+    .header .logo { font-family: monospace; font-size: 20px; font-weight: bold; color: var(--accent); margin-right: 8px; }
+    .header .logo-sub { font-size: 14px; color: var(--text); }
+    .header .nav { margin-left: 32px; display: flex; gap: 20px; }
+    .header .nav a { font-size: 14px; color: var(--text-sec); cursor: pointer; }
+    .header .nav a:hover { color: var(--accent); }
+    .header .scan-id { margin-left: auto; font-family: monospace; font-size: 12px; color: var(--text-light); }
+    .tier-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #f0f0f0;
+      margin-left: 12px;
+      color: #555;
+    }
+    .tier-badge.tier-free { background: #f5f5f5; }
+    .tier-badge.tier-team { background: #cfe8ff; }
+    .tier-badge.tier-business { background: #ffe8b3; }
+    .tier-badge.tier-enterprise { background: #d4f5d4; }
+
+    /* Footer */
+    .footer { text-align: center; padding: 16px; color: var(--text-light); font-size: 12px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    /* Views (only one visible at a time). */
+    .view { display: none; max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+    .view.active { display: block; }
+
+    /* Cards */
+    .card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+
+    /* Buttons */
+    .btn { display: inline-block; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-success { background: var(--green); color: white; }
+    .btn-outline { background: white; border: 2px solid var(--accent); color: var(--accent); }
+    .btn-ghost { background: white; border: 1px solid var(--text-sec); color: var(--text-sec); }
+
+    /* Badge */
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; color: white; text-transform: uppercase; }
+    .badge-alto { background: var(--danger); }
+    .badge-medio { background: var(--orange); }
+    .badge-bajo { background: var(--warning); color: #856404; }
+    .badge-info { background: var(--text-light); }
+    .badge-ok { background: var(--success); }
+
+    /* ======= UPLOAD VIEW ======= */
+    .upload-hero { text-align: center; margin-bottom: 24px; }
+    .upload-hero h1 { font-size: 28px; margin-bottom: 8px; }
+    .upload-hero p { color: var(--text-sec); font-size: 16px; }
+    .upload-zone { border: 2px dashed var(--accent); border-radius: 12px; padding: 40px; text-align: center; margin-bottom: 16px; cursor: pointer; transition: background .15s; display: block; }
+    .upload-zone:hover, .upload-zone.dragover { background: #EBF5FB; }
+    .upload-zone .arrow { font-size: 32px; color: var(--accent); margin-bottom: 8px; }
+    .upload-zone p { color: var(--text); font-size: 15px; margin-bottom: 4px; }
+    .upload-zone small { color: var(--text-light); font-size: 13px; }
+    .upload-zone input[type="file"] { display: none; }
+    .tier-select { text-align: center; margin: 24px 0 8px; font-size: 16px; font-weight: 600; }
+    .tiers { display: flex; gap: 16px; justify-content: center; margin-bottom: 24px; }
+    .tier-card { border: 2px solid var(--border); border-radius: 12px; padding: 20px; width: 200px; text-align: center; cursor: pointer; position: relative; transition: border-color .15s, box-shadow .15s; }
+    .tier-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+    .tier-card.selected { border-color: var(--accent); box-shadow: 0 2px 12px rgba(78,121,167,.2); }
+    .tier-card .price { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .tier-card .name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .tier-card .desc { font-size: 13px; color: var(--text-sec); }
+    .tier-card .recommended { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 2px 12px; border-radius: 10px; }
+    .tier-card input[type="radio"] { margin-top: 12px; accent-color: var(--accent); }
+    .tier-card[data-color="teal"] .price { color: var(--teal); }
+    .tier-card[data-color="teal"].selected { border-color: var(--teal); }
+    .tier-card[data-color="blue"] .price { color: var(--accent); }
+    .tier-card[data-color="green"] .price { color: var(--green); }
+    .tier-card[data-color="green"].selected { border-color: var(--green); }
+    .upload-cta { text-align: center; margin: 24px 0; }
+    .upload-cta .btn { font-size: 18px; padding: 14px 48px; }
+    .trust-signals { display: flex; justify-content: center; gap: 32px; margin: 20px 0; }
+    .trust-signals span { color: var(--text-sec); font-size: 14px; }
+    .trust-signals span::before { content: '\2713'; color: var(--success); font-weight: bold; margin-right: 6px; }
+    .stats-bar { text-align: center; color: var(--text-light); font-size: 13px; margin-top: 12px; }
+
+    /* ======= PROGRESS VIEW ======= */
+    .progress-hero { text-align: center; margin-bottom: 24px; }
+    .progress-hero h2 { font-size: 22px; margin-bottom: 8px; }
+    .progress-hero p { color: var(--text-sec); font-size: 14px; }
+    .progress-pills { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 24px 0; }
+    .pill { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); font-size: 13px; color: var(--text-sec); background: white; }
+    .pill.active { background: var(--accent); color: white; border-color: var(--accent); font-weight: 600; }
+    .pill.done { background: var(--success); color: white; border-color: var(--success); }
+    .progress-bar { background: var(--border); height: 8px; border-radius: 4px; overflow: hidden; margin: 16px 0; }
+    .progress-bar-fill { background: var(--accent); height: 100%; transition: width .3s; }
+    .progress-message { font-family: monospace; font-size: 13px; color: var(--text-sec); background: #F8F9FA; padding: 12px 16px; border-radius: 6px; min-height: 40px; word-break: break-word; }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; vertical-align: middle; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ======= RESULTS VIEW ======= */
+    .breadcrumb { font-size: 13px; color: var(--text-sec); margin-bottom: 20px; }
+    .breadcrumb a { color: var(--accent); cursor: pointer; }
+    .results-grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+    .score-card { text-align: center; }
+    .score-circle { width: 140px; height: 140px; border-radius: 50%; border: 8px solid var(--border); display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 16px auto; position: relative; }
+    .score-circle .value { font-size: 44px; font-weight: 700; }
+    .score-circle .label { font-size: 14px; color: var(--text-sec); }
+    .score-circle.score-red { border-color: var(--danger); }
+    .score-circle.score-orange { border-color: var(--orange); }
+    .score-circle.score-green { border-color: var(--success); }
+    .score-warning { background: #FFF3CD; border-radius: 8px; padding: 8px; font-size: 13px; color: #856404; font-weight: 600; margin-top: 12px; }
+    .masvs-list { margin-top: 20px; }
+    .masvs-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; gap: 8px; }
+    .masvs-row.na { color: var(--text-light); }
+    .masvs-row .count { min-width: 28px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 4px; color: white; font-size: 12px; font-weight: 700; padding: 0 6px; }
+    .filter-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-tab { padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; background: transparent; border: 1px solid var(--border); color: var(--text-sec); }
+    .filter-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .finding-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .finding-row:last-child { border-bottom: none; }
+    .finding-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
+    .finding-header .title { font-weight: 600; font-size: 15px; }
+    .finding-meta { font-size: 13px; color: var(--text-sec); margin-bottom: 6px; }
+    .finding-fix { font-size: 13px; color: var(--text-sec); font-style: italic; }
+    .ai-box { background: #F0F7FF; border: 1px solid var(--accent); border-radius: 8px; padding: 16px; margin-top: 16px; font-size: 13px; line-height: 1.7; }
+    .ai-box h4 { margin-bottom: 8px; }
+    .action-bar { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+    .analysis-meta { font-size: 13px; color: var(--text-light); margin-top: 16px; }
+
+    /* ======= HISTORY VIEW ======= */
+    .history-table { width: 100%; border-collapse: collapse; background: var(--white); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .history-table th, .history-table td { padding: 12px 16px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border); }
+    .history-table th { background: #F8F9FA; font-weight: 600; color: var(--text-sec); font-size: 13px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .history-table tr:last-child td { border-bottom: none; }
+    .history-table tr:hover td { background: #FBFBFA; }
+    .hint { color: var(--text-sec); font-size: 14px; padding: 16px 0; }
+    .btn-secondary { display: inline-block; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; background: white; border: 2px solid var(--accent); color: var(--accent); transition: opacity .15s; }
+    .btn-secondary:hover { opacity: .85; }
+    .btn-link { background: transparent; border: none; color: var(--accent); font-size: 14px; font-weight: 600; cursor: pointer; padding: 4px 8px; }
+    .btn-link:hover { text-decoration: underline; }
+
+    /* ======= ERROR VIEW ======= */
+    .error-card { border: 1px solid var(--danger); background: #FFF5F5; }
+    .error-card h2 { color: var(--danger); margin-bottom: 12px; }
+    .error-card pre { background: white; padding: 12px; border-radius: 6px; font-size: 13px; color: var(--text); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+
+    /* ======= DOCS VIEW ======= */
+    .docs-hero { text-align: center; margin-bottom: 24px; }
+    .docs-hero h1 { font-size: 28px; margin-bottom: 8px; }
+    .docs-hero p { color: var(--text-sec); font-size: 16px; }
+    .docs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .docs-grid .card.full { grid-column: 1 / -1; }
+    .docs-section h3 { font-size: 18px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+    .docs-section h3 .num { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: white; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+    .docs-section p { color: var(--text); font-size: 14px; line-height: 1.7; margin-bottom: 12px; }
+    .docs-section ul { list-style: none; margin-bottom: 12px; }
+    .docs-section li { font-size: 14px; line-height: 1.6; padding: 7px 0 7px 18px; position: relative; border-bottom: 1px solid var(--border); }
+    .docs-section li:last-child { border-bottom: none; }
+    .docs-section li::before { content: '\2022'; color: var(--accent); position: absolute; left: 2px; font-weight: bold; }
+    .docs-section code { font-family: monospace; font-size: 13px; background: #EEF3F8; color: var(--accent); padding: 1px 6px; border-radius: 4px; }
+    .docs-pre { font-family: monospace; font-size: 13px; color: var(--text); background: #F8F9FA; border: 1px solid var(--border); padding: 14px 16px; border-radius: 8px; overflow-x: auto; white-space: pre; line-height: 1.65; }
+    .docs-pre .cmt { color: var(--text-light); }
+    .docs-note { background: #F0F7FF; border: 1px solid var(--accent); border-radius: 8px; padding: 12px 16px; font-size: 13px; line-height: 1.7; margin-top: 4px; }
+    .api-row { display: flex; align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .api-row:last-child { border-bottom: none; }
+    .api-method { font-family: monospace; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; min-width: 46px; text-align: center; flex-shrink: 0; }
+    .api-method.get { background: #d4f5d4; color: #1d6f1d; }
+    .api-method.post { background: #cfe8ff; color: #1a5a8a; }
+    .api-row code { font-family: monospace; font-size: 13px; color: var(--text); font-weight: 600; }
+    .api-row .api-desc { color: var(--text-sec); font-size: 13px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .results-grid { grid-template-columns: 1fr; }
+      .docs-grid { grid-template-columns: 1fr; }
+      .tiers { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <span class="logo">IKUSA</span>
+    <span class="logo-sub">Compliance Scanner</span>
+    <nav class="nav">
+      <a href="#" id="navHome">Inicio</a>
+      <a href="#" id="navHistory">Historial</a>
+      <a href="#" id="navDocs">Documentacion</a>
+
+    </nav>
+    <span class="scan-id" id="scanIdLabel"></span>
+    <span class="tier-badge" id="tierBadge"></span>
+  </header>
+
+  <!-- VIEW 1: UPLOAD -->
+  <main id="view-upload" class="view active">
+    <div class="upload-hero">
+      <h1>Audita tu APK en minutos, no en semanas</h1>
+      <p>Informe de compliance MASVS/CRA automatico</p>
+    </div>
+
+    <div class="card">
+      <label class="upload-zone" id="dropzone" for="fileInput">
+        <div class="arrow">&uarr;</div>
+        <p>Arrastra tu archivo .apk o .aab aqui</p>
+        <small>o haz clic para seleccionar</small>
+        <input type="file" id="fileInput" accept=".apk,.aab">
+        <p style="margin-top:8px"><small style="color:var(--text-light)">Formatos: .apk, .aab | Max: 150 MB</small></p>
+        <p id="fileName" style="margin-top:8px;font-weight:600;color:var(--accent);display:none"></p>
+      </label>
+
+      <p class="tier-select">Tipo de analisis:</p>
+      <div class="tiers" style="justify-content: center;">
+        <div class="tier-card selected" data-color="green" data-tier="compliance" style="width: 320px; cursor: default;">
+          <div class="recommended">PLAN UNICO</div>
+          <div class="price">$5.00</div>
+          <div class="name">Compliance PDF</div>
+          <div class="desc">Auditoria completa (SAST + IA + PDF)</div>
+          <input type="radio" name="tier" value="compliance" checked style="display: none;">
+        </div>
+      </div>
+
+      <div class="upload-cta">
+        <button class="btn btn-primary" id="analyzeBtn" disabled>Analizar APK</button>
+      </div>
+    </div>
+
+    <div class="trust-signals">
+      <span>OWASP MASVS v2.1</span>
+      <span>CRA Reglamento 2024/2847</span>
+      <span>Privacidad by-design</span>
+    </div>
+    <div class="stats-bar">Prototipo local | MobSF + Ollama + WeasyPrint | Tiempo medio: 30-120 s</div>
+  </main>
+
+  <!-- VIEW 2: PROGRESS -->
+  <main id="view-progress" class="view">
+    <div class="progress-hero">
+      <h2><span class="spinner"></span>Analizando tu APK</h2>
+      <p>El proceso se ejecuta en segundo plano. No cierres esta pestana.</p>
+    </div>
+
+    <div class="card">
+      <div class="progress-pills" id="progressPills">
+        <span class="pill" data-stage="uploaded">1. Recibido</span>
+        <span class="pill" data-stage="decompiling">2. Decompilando</span>
+        <span class="pill" data-stage="analyzing">3. Clasificando</span>
+        <span class="pill" data-stage="triaging">4. Triage IA</span>
+        <span class="pill" data-stage="rendering">5. PDF</span>
+        <span class="pill" data-stage="done">6. Listo</span>
+      </div>
+      <div class="progress-bar"><div class="progress-bar-fill" id="progressBarFill" style="width:8%"></div></div>
+      <div class="progress-message" id="progressMessage">Inicializando...</div>
+    </div>
+  </main>
+
+  <!-- VIEW HISTORY -->
+  <main id="view-history" class="view">
+    <div class="container">
+      <h2 style="margin-bottom:16px">Historial de scans</h2>
+      <p class="hint" id="history-empty" style="display:none">No hay scans previos. Sube un APK para empezar.</p>
+      <table class="history-table" id="history-table">
+        <thead>
+          <tr><th>App</th><th>Fecha</th><th>Estado</th><th>Score</th><th></th></tr>
+        </thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+      <button class="btn-secondary" id="historyNewScan">Nuevo scan</button>
+    </div>
+  </main>
+
+  <!-- VIEW 3: RESULTS -->
+  <main id="view-results" class="view">
+    <div class="breadcrumb"><a id="backToUpload">Inicio</a> &gt; Resultados &gt; <span id="resultAppName">...</span></div>
+
+    <div class="results-grid">
+      <!-- Left column: score + MASVS -->
+      <div>
+        <div class="card score-card">
+          <h3>CRA Readiness Score</h3>
+          <div class="score-circle" id="scoreCircle">
+            <span class="value" id="score-value">--</span>
+            <span class="label">/100</span>
+          </div>
+          <div class="score-warning" id="scoreWarning">Calculando...</div>
+        </div>
+
+        <div class="card masvs-list" style="margin-top:16px">
+          <h3 style="margin-bottom:12px">Categorias MASVS</h3>
+          <div id="masvsList"></div>
+          <p style="font-size:12px;color:var(--text-light);margin-top:8px">N/A = requiere testing dinamico</p>
+        </div>
+      </div>
+
+      <!-- Right column: findings -->
+      <div>
+        <div class="card findings-card">
+          <h3 style="margin-bottom:12px"><span id="findingsTitle">Findings</span></h3>
+          <div class="filter-tabs" id="filterTabs"></div>
+          <div id="findingsList"></div>
+
+          <div class="ai-box" id="aiBox" style="display:none">
+            <h4>Resumen IA (top finding)</h4>
+            <p id="aiBoxText"></p>
+          </div>
+
+          <div class="action-bar">
+            <a class="btn btn-success" id="download-pdf" href="#" target="_blank">Descargar PDF</a>
+            <a class="btn btn-outline" id="download-json" href="#" target="_blank">Descargar JSON</a>
+            <button class="btn btn-ghost" id="analyzeAnother">Analizar otro APK</button>
+          </div>
+        </div>
+
+        <div class="analysis-meta" id="analysisMeta"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- VIEW 4: ERROR -->
+  <main id="view-error" class="view">
+    <div class="card error-card">
+      <h2>Error en el analisis</h2>
+      <p style="margin-bottom:12px">La pipeline ha fallado. Detalle del error:</p>
+      <pre id="error-message"></pre>
+      <div id="error-cta" style="display:none; margin-top: 16px;">
+        <p style="margin-bottom:12px; font-weight:600; color:var(--text-sec)">Adquirir plan para continuar:</p>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+          <button class="btn btn-primary" id="buyWebScan" style="background:var(--orange)">1 Análisis Web &middot; $5</button>
+          <button class="btn btn-primary" id="buyTerminalSub" style="background:var(--accent)">Suscripción Terminal &middot; $49/mes</button>
+        </div>
+      </div>
+      <div class="action-bar">
+        <button class="btn btn-primary" id="errorRetry">Volver a empezar</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- VIEW 6: DOCUMENTATION -->
+  <main id="view-docs" class="view">
+    <div class="docs-hero">
+      <h1>Documentacion</h1>
+      <p>Como usar IKUSA: web, linea de comandos, MCP y API REST</p>
+    </div>
+
+    <div class="docs-grid">
+      <div class="card docs-section full">
+        <h3><span class="num">1</span> Uso web</h3>
+        <p>Arrastra un <code>.apk</code> o <code>.aab</code> a la zona de subida
+          (max 150 MB) y pulsa "Analizar APK". El analisis corre en segundo plano: no cierres la pestana.</p>
+        <ul>
+          <li><strong>Compliance PDF</strong> &mdash; Auditoria de seguridad completa que combina analisis estatico con MobSF, triage avanzado mediante IA (LLM) y la generacion automatica del reporte en formato PDF compatible con MASVS/CRA.</li>
+        </ul>
+        <div class="docs-note">El triage con IA tarda <strong>~2-3 minutos en
+          CPU</strong> (segundos con GPU). El <strong>CRA Readiness Score</strong>
+          va de 0 a 100: cuanto mas alto, mas cerca de cumplir.</div>
+      </div>
+
+      <div class="card docs-section">
+        <h3><span class="num">2</span> CLI</h3>
+        <p>Para integrar en CI/CD. Devuelve codigo de salida <code>2</code> si
+          hay findings por encima del umbral indicado.</p>
+        <div class="docs-pre">uv run ikusa-cli login --api-key ikusa_sk_demo
+uv run ikusa-cli scan app.apk -o report.pdf --fail-on alto
+<span class="cmt"># Exit 0 = ok, 2 = findings por encima del umbral</span></div>
+      </div>
+
+      <div class="card docs-section">
+        <h3><span class="num">3</span> MCP (asistentes de IA)</h3>
+        <p>Servidor JSON-RPC sobre stdio para clientes compatibles con MCP.
+          Expone 4 tools: <code>scan_apk</code>, <code>get_scan_status</code>,
+          <code>get_scan_findings</code>, <code>list_scans</code>.</p>
+        <div class="docs-pre">uv run ikusa-mcp</div>
+        <p style="margin-top:12px">Registro en el cliente MCP (Cursor, etc.):</p>
+        <div class="docs-pre">{
+  "mcpServers": {
+    "ikusa": {
+      "command": "uv",
+      "args": ["run", "ikusa-mcp"],
+      "cwd": "/ruta/a/ikusa-prototype"
+    }
+  }
+}</div>
+      </div>
+
+      <div class="card docs-section full">
+        <h3><span class="num">4</span> API REST</h3>
+        <div class="api-row"><span class="api-method post">POST</span><code>/scan</code><span class="api-desc">sube APK (campo <code>file</code>) + <code>tier</code>; devuelve <code>scan_id</code></span></div>
+        <div class="api-row"><span class="api-method get">GET</span><code>/scan/{id}</code><span class="api-desc">estado del scan (status / stage / message)</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><code>/scan/{id}/result</code><span class="api-desc">findings + cra_score en JSON</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><code>/scan/{id}/report</code><span class="api-desc">PDF de compliance</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><code>/scans</code><span class="api-desc">historial del usuario</span></div>
+        <div class="api-row"><span class="api-method get">GET</span><code>/account</code><span class="api-desc">tier y cuota</span></div>
+        <p style="margin-top:14px">Ejemplo:</p>
+        <div class="docs-pre">curl -F file=@app.apk -F tier=compliance \
+     -H "Authorization: ikusa_sk_demo" \
+     http://localhost:9787/scan</div>
+        <div class="docs-note">Autenticacion opcional con la cabecera
+          <code>Authorization: ikusa_sk_*</code>. Sin clave se usa el tier
+          free anonimo.</div>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn btn-outline" id="docsBack">Volver al inicio</button>
+    </div>
+  </main>
+
+
+
+  <footer class="footer">Prototipo IKUSA Compliance Scanner | MASVS v2.1 + CRA Annex I</footer>
+
+  <script>
+    // ----- FETCH INTERCEPTOR FOR MOCKING THE BACKEND ENTIRELY CLIENT-SIDE -----
+    (function() {
+      const originalFetch = window.fetch;
+      
+      // Initialize mock data in localStorage
+      if (localStorage.getItem('ikusa_credits') === null) {
+        localStorage.setItem('ikusa_credits', '10');
+      }
+      if (localStorage.getItem('ikusa_scans_made') === null) {
+        localStorage.setItem('ikusa_scans_made', '2');
+      }
+      if (localStorage.getItem('ikusa_history') === null) {
+        const defaultHistory = [
+          { scan_id: "scan_demo_bank", app_name: "InsecureBankv2", updated_at: new Date(Date.now() - 3600000 * 2).toISOString(), status: "done", cra_score: 78 },
+          { scan_id: "scan_demo_vault", app_name: "SecureVault", updated_at: new Date(Date.now() - 86400000 * 2).toISOString(), status: "done", cra_score: 94 }
+        ];
+        localStorage.setItem('ikusa_history', JSON.stringify(defaultHistory));
+      }
+      
+      let scanProgress = {};
+
+      window.fetch = async function(url, options) {
+        const urlStr = typeof url === 'string' ? url : url.url;
+        
+        // 1. POST /scan
+        if (urlStr.endsWith('/scan') && (options && options.method === 'POST')) {
+          const currentKey = localStorage.getItem('ikusa_api_key') || 'ikusa_sk_demo';
+          const credits = parseInt(localStorage.getItem('ikusa_credits') || '0', 10);
+          
+          if (currentKey === 'ikusa_sk_free_demo' && credits === 0) {
+            return new Response(JSON.stringify({
+              detail: "Tier 'free' allows 3 scans/month and is exhausted. Buy credits or upgrade."
+            }), { status: 402, headers: { 'Content-Type': 'application/json' } });
+          }
+          
+          // Get filename from body (FormData)
+          let fileName = "app.apk";
+          if (options.body && options.body instanceof FormData) {
+            const file = options.body.get('file');
+            if (file && file.name) fileName = file.name;
+          }
+          
+          const appName = fileName.replace(/\.[^/.]+$/, "");
+          
+          // Determine scenario based on name or random
+          let scenarioNum = Math.floor(Math.random() * 3);
+          if (fileName.toLowerCase().includes("insecure") || fileName.toLowerCase().includes("bank") || fileName.toLowerCase().includes("prueba")) {
+            scenarioNum = 0; // Forced vulnerable bank scenario
+          } else if (fileName.toLowerCase().includes("secure") || fileName.toLowerCase().includes("vault")) {
+            scenarioNum = 2; // Forced highly secure vault scenario
+          }
+          
+          let score = 78;
+          let categories_covered = ["MASVS-STORAGE", "MASVS-CRYPTO", "MASVS-NETWORK", "MASVS-PLATFORM"];
+          let findings = [];
+          
+          if (scenarioNum === 0) {
+            score = Math.floor(Math.random() * (62 - 48 + 1)) + 48;
+            categories_covered = ["MASVS-STORAGE", "MASVS-CRYPTO", "MASVS-NETWORK", "MASVS-PLATFORM"];
+            findings = [
+              {
+                id: "CRYPTO-0",
+                title: "Uso de claves criptográficas estáticas",
+                severity: "high",
+                masvs_category: "MASVS-CRYPTO",
+                description: "La aplicación utiliza una clave AES estática codificada de forma rígida en el código fuente para cifrar los datos del usuario.",
+                file_path: "com/android/insecurebankv2/CryptoUtility.java",
+                cwe: "CWE-321",
+                raw_mobsf_key: "hardcoded_aes_key",
+                priority: 1,
+                explanation: "Se identificó una clave AES fija dentro de las utilidades de criptografía de la app. Esto anula la seguridad del cifrado, ya que cualquier atacante que descompile el APK puede extraer la clave y descifrar la base de datos o comunicaciones.",
+                remediation: "Migrar al Android Keystore System para generar y almacenar claves criptográficas de forma segura protegidas por hardware en el dispositivo.",
+                cra_articles: ["Annex I (1)(h)", "Annex I (2)(b)"]
+              },
+              {
+                id: "NETWORK-0",
+                title: "Uso de HTTP no seguro en el canal de comunicación",
+                severity: "high",
+                masvs_category: "MASVS-NETWORK",
+                description: "La aplicación realiza conexiones HTTP en texto plano a su servidor backend, lo que facilita ataques de tipo Man-in-the-Middle (MitM).",
+                file_path: "com/android/insecurebankv2/DoTransfer.java",
+                cwe: "CWE-319",
+                raw_mobsf_key: "cleartext_traffic_allowed",
+                priority: 1,
+                explanation: "Las transferencias y datos bancarios se envían mediante HTTP simple sin cifrar. Cualquier tercero en la misma red Wi-Fi podría interceptar o modificar el tráfico bancario.",
+                remediation: "Habilitar la configuración de seguridad de red en el manifiesto para exigir HTTPS de forma estricta y rechazar tráfico en texto plano.",
+                cra_articles: ["Annex I (1)(f)", "Annex I (2)(a)"]
+              },
+              {
+                id: "STORAGE-0",
+                title: "Copia de seguridad de la aplicación habilitada",
+                severity: "medium",
+                masvs_category: "MASVS-STORAGE",
+                description: "La bandera 'android:allowBackup' está establecida en 'true' en el archivo AndroidManifest.xml, lo que permite realizar copias de seguridad de los datos de la aplicación mediante comandos ADB.",
+                file_path: "AndroidManifest.xml",
+                cwe: "CWE-921",
+                raw_mobsf_key: "allow_backup_enabled",
+                priority: 2,
+                explanation: "Al permitir backups, cualquier persona con acceso físico al teléfono móvil y la depuración USB activa puede extraer los datos privados de la aplicación a su ordenador usando 'adb backup'.",
+                remediation: "Establecer 'android:allowBackup=false' en el archivo AndroidManifest.xml o configurar reglas detalladas de filtrado de copias de seguridad.",
+                cra_articles: ["Annex I (1)(h)"]
+              },
+              {
+                id: "STORAGE-1",
+                title: "Almacenamiento de datos sensibles en la base de datos local sin cifrar",
+                severity: "medium",
+                masvs_category: "MASVS-STORAGE",
+                description: "La aplicación almacena registros de transacciones bancarias en una base de datos SQLite estándar sin cifrado adicional.",
+                file_path: "com/android/insecurebankv2/DatabaseHelper.java",
+                cwe: "CWE-311",
+                raw_mobsf_key: "sqlite_db_plain",
+                priority: 2,
+                explanation: "La base de datos del historial de transacciones se guarda sin cifrar. Si el dispositivo sufre de rooting o vulnerabilidad del sistema operativo, otras aplicaciones o atacantes físicos podrían leer las transacciones bancarias directamente.",
+                remediation: "Migrar a SQLCipher o cifrar las columnas con información sensible antes de insertarlas en la base de datos local.",
+                cra_articles: ["Annex I (1)(h)"]
+              },
+              {
+                id: "PLATFORM-0",
+                title: "Depuración habilitada en producción",
+                severity: "low",
+                masvs_category: "MASVS-PLATFORM",
+                description: "El atributo 'android:debuggable' está habilitado en el manifiesto, facilitando la conexión de depuradores externos.",
+                file_path: "AndroidManifest.xml",
+                cwe: "CWE-215",
+                raw_mobsf_key: "debuggable_enabled",
+                priority: 3,
+                explanation: "El APK se compiló en modo depuración. Esto permite a los atacantes acoplar un depurador en tiempo de ejecución, volcar la memoria y saltarse controles de seguridad importantes.",
+                remediation: "Asegurarse de que 'android:debuggable' esté en 'false' en el archivo AndroidManifest.xml para todas las compilaciones de producción.",
+                cra_articles: ["Annex I (1)(h)"]
+              }
+            ];
+          } else if (scenarioNum === 1) {
+            score = Math.floor(Math.random() * (84 - 72 + 1)) + 72;
+            categories_covered = ["MASVS-STORAGE", "MASVS-NETWORK", "MASVS-PLATFORM"];
+            findings = [
+              {
+                id: "NETWORK-0",
+                title: "Omitida la validación SSL/TLS (Certificados no anclados)",
+                severity: "high",
+                masvs_category: "MASVS-NETWORK",
+                description: "La aplicación carece de mecanismos de anclaje de certificados (SSL Pinning) para proteger las conexiones de red.",
+                file_path: "com/example/app/NetworkClient.java",
+                cwe: "CWE-295",
+                raw_mobsf_key: "ssl_pinning_missing",
+                priority: 1,
+                explanation: "Las conexiones a los servidores se realizan sin validar de forma explícita la huella del certificado, permitiendo que atacantes en redes comprometidas intercepten los datos simulando el servidor de la app.",
+                remediation: "Implementar Network Security Config o librerías como TrustKit para anclar de forma estática las claves públicas del certificado del servidor.",
+                cra_articles: ["Annex I (1)(f)"]
+              },
+              {
+                id: "STORAGE-0",
+                title: "Copia de seguridad de la aplicación habilitada",
+                severity: "medium",
+                masvs_category: "MASVS-STORAGE",
+                description: "El atributo allowBackup está activado en AndroidManifest.xml.",
+                file_path: "AndroidManifest.xml",
+                cwe: "CWE-921",
+                raw_mobsf_key: "allow_backup_enabled",
+                priority: 2,
+                explanation: "Se pueden extraer todos los archivos del directorio de la app a través del protocolo ADB mediante comandos locales si el usuario tiene habilitada la depuración USB.",
+                remediation: "Cambiar allowBackup a false en el manifest de producción.",
+                cra_articles: ["Annex I (1)(h)"]
+              },
+              {
+                id: "STORAGE-1",
+                title: "Uso de SharedPreferences estándar sin cifrado",
+                severity: "medium",
+                masvs_category: "MASVS-STORAGE",
+                description: "La aplicación almacena configuraciones de sesión del usuario en texto plano en las preferencias compartidas.",
+                file_path: "com/example/app/SessionManager.java",
+                cwe: "CWE-921",
+                raw_mobsf_key: "shared_prefs_plain",
+                priority: 2,
+                explanation: "Las credenciales y tokens de acceso se almacenan en texto plano en la memoria del dispositivo. En dispositivos con privilegios de root, otras aplicaciones maliciosas podrían leer estos tokens.",
+                remediation: "Reemplazar por EncryptedSharedPreferences.",
+                cra_articles: ["Annex I (1)(h)"]
+              },
+              {
+                id: "PLATFORM-0",
+                title: "Ausencia de ofuscación de código fuente",
+                severity: "low",
+                masvs_category: "MASVS-PLATFORM",
+                description: "La aplicación se compiló sin herramientas de ofuscación o reducción de código como R8/ProGuard.",
+                file_path: "build.gradle",
+                cwe: "CWE-215",
+                raw_mobsf_key: "proguard_disabled",
+                priority: 3,
+                explanation: "Cualquier persona puede descompilar el APK y recuperar nombres de funciones y variables originales, lo que facilita el análisis de vulnerabilidades y la ingeniería inversa.",
+                remediation: "Activar minifyEnabled y shrinkResources en el fichero de Gradle.",
+                cra_articles: ["Annex I (1)(h)"]
+              }
+            ];
+          } else {
+            score = Math.floor(Math.random() * (97 - 88 + 1)) + 88;
+            categories_covered = ["MASVS-STORAGE", "MASVS-PLATFORM"];
+            findings = [
+              {
+                id: "STORAGE-0",
+                title: "Copia de seguridad de la aplicación habilitada",
+                severity: "medium",
+                masvs_category: "MASVS-STORAGE",
+                description: "El atributo allowBackup está activado en AndroidManifest.xml.",
+                file_path: "AndroidManifest.xml",
+                cwe: "CWE-921",
+                raw_mobsf_key: "allow_backup_enabled",
+                priority: 2,
+                explanation: "Al tener activado el backup, un tercero con acceso físico al teléfono puede hacer volcado de los datos privados mediante comandos ADB.",
+                remediation: "Deshabilitar la copia automática (allowBackup=false).",
+                cra_articles: ["Annex I (1)(h)"]
+              },
+              {
+                id: "PLATFORM-0",
+                title: "Permisos innecesarios solicitados en el manifiesto",
+                severity: "low",
+                masvs_category: "MASVS-PLATFORM",
+                description: "La app solicita READ_PHONE_STATE y ACCESS_COARSE_LOCATION sin una necesidad core aparente.",
+                file_path: "AndroidManifest.xml",
+                cwe: "CWE-272",
+                raw_mobsf_key: "excessive_permissions",
+                priority: 3,
+                explanation: "Solicitar permisos de localización y estado del terminal expone información sensible del usuario que no se requiere para el funcionamiento básico del servicio.",
+                remediation: "Eliminar las etiquetas <uses-permission> innecesarias en el archivo de manifiesto.",
+                cra_articles: ["Annex I (1)(h)"]
+              }
+            ];
+          }
+          
+          const scanId = "scan_" + Math.random().toString(36).substring(2, 10);
+          scanProgress[scanId] = {
+            scan_id: scanId,
+            app_name: appName,
+            package_name: "com.example." + fileName.toLowerCase().replace(/[^a-z0-9]/g, ""),
+            status: "processing",
+            stage: "uploaded",
+            message: "Recibido " + fileName + "... (12.4 MB)",
+            pollCount: 0,
+            score: score,
+            categories_covered: categories_covered,
+            findings: findings
+          };
+          
+          return new Response(JSON.stringify({ scan_id: scanId, status: "processing" }), {
+            status: 200, headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        
+        // 2. GET /scan/{id} (polling)
+        const scanMatch = urlStr.match(/\/scan\/(scan_[a-z0-9_]+)$/);
+        if (scanMatch) {
+          const scanId = scanMatch[1];
+          // Special handling for history pre-seeded items
+          if (scanId === "scan_demo_bank" || scanId === "scan_demo_vault") {
+            return new Response(JSON.stringify({
+              scan_id: scanId,
+              app_name: scanId === "scan_demo_bank" ? "InsecureBankv2" : "SecureVault",
+              package_name: scanId === "scan_demo_bank" ? "com.android.insecurebankv2" : "com.example.securevault",
+              status: "done",
+              stage: "done",
+              message: "Listo",
+              cra_score: scanId === "scan_demo_bank" ? 78 : 94
+            }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+          }
+          
+          const p = scanProgress[scanId];
+          if (p) {
+            p.pollCount++;
+            const stages = [
+              { stage: "uploaded", msg: "Recibido. Esperando MobSF...", status: "processing" },
+              { stage: "decompiling", msg: "Decompilando con MobSF...", status: "processing" },
+              { stage: "analyzing", msg: "Analizando con SAST...", status: "processing" },
+              { stage: "triaging", msg: "Triage cognitivo con IA...", status: "processing" },
+              { stage: "rendering", msg: "Generando informe de compliance...", status: "processing" },
+              { stage: "done", msg: "Listo", status: "done" }
+            ];
+            
+            const stageIdx = Math.min(p.pollCount, stages.length - 1);
+            p.stage = stages[stageIdx].stage;
+            p.message = stages[stageIdx].msg;
+            p.status = stages[stageIdx].status;
+            
+            if (p.status === "done") {
+              const history = JSON.parse(localStorage.getItem('ikusa_history') || '[]');
+              if (!history.some(h => h.scan_id === scanId)) {
+                history.unshift({
+                  scan_id: scanId,
+                  app_name: p.app_name,
+                  updated_at: new Date().toISOString(),
+                  status: "done",
+                  cra_score: p.score
+                });
+                localStorage.setItem('ikusa_history', JSON.stringify(history));
+                
+                if (localStorage.getItem('ikusa_api_key') !== 'ikusa_sk_ent_demo') {
+                  const currentCredits = parseInt(localStorage.getItem('ikusa_credits') || '0', 10);
+                  if (currentCredits > 0) {
+                    localStorage.setItem('ikusa_credits', String(currentCredits - 1));
+                  } else {
+                    const currentScans = parseInt(localStorage.getItem('ikusa_scans_made') || '0', 10);
+                    localStorage.setItem('ikusa_scans_made', String(currentScans + 1));
+                  }
+                }
+              }
+            }
+            
+            return new Response(JSON.stringify({
+              scan_id: p.scan_id,
+              app_name: p.app_name,
+              package_name: p.package_name,
+              status: p.status,
+              stage: p.stage,
+              message: p.message,
+              cra_score: p.status === 'done' ? p.score : null
+            }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+          }
+        }
+        
+        // 3. GET /scan/{id}/result
+        const resultMatch = urlStr.match(/\/scan\/(scan_[a-z0-9_]+)\/result$/);
+        if (resultMatch) {
+          const scanId = resultMatch[1];
+          const isBank = scanId === "scan_demo_bank";
+          const isVault = scanId === "scan_demo_vault";
+          
+          let p = scanProgress[scanId];
+          
+          // Fallback static scenarios for pre-seeded items
+          if (!p) {
+            if (isBank) {
+              p = {
+                scan_id: scanId,
+                app_name: "InsecureBankv2",
+                package_name: "com.android.insecurebankv2",
+                score: 78,
+                categories_covered: ["MASVS-STORAGE", "MASVS-CRYPTO", "MASVS-NETWORK", "MASVS-PLATFORM"],
+                findings: [
+                  {
+                    id: "CRYPTO-0",
+                    title: "Uso de claves criptográficas estáticas",
+                    severity: "high",
+                    masvs_category: "MASVS-CRYPTO",
+                    description: "La aplicación utiliza una clave AES estática codificada de forma rígida en el código fuente para cifrar los datos del usuario.",
+                    file_path: "com/android/insecurebankv2/CryptoUtility.java",
+                    cwe: "CWE-321",
+                    raw_mobsf_key: "hardcoded_aes_key",
+                    priority: 1,
+                    explanation: "Se identificó una clave AES fija dentro de las utilidades de criptografía de la app. Esto anula la seguridad del cifrado, ya que cualquier atacante que descompile el APK puede extraer la clave y descifrar la base de datos o comunicaciones.",
+                    remediation: "Migrar al Android Keystore System para generar y almacenar claves criptográficas de forma segura protegidas por hardware en el dispositivo.",
+                    cra_articles: ["Annex I (1)(h)", "Annex I (2)(b)"]
+                  },
+                  {
+                    id: "NETWORK-0",
+                    title: "Uso de HTTP no seguro en el canal de comunicación",
+                    severity: "high",
+                    masvs_category: "MASVS-NETWORK",
+                    description: "La aplicación realiza conexiones HTTP en texto plano a su servidor backend, lo que facilita ataques de tipo Man-in-the-Middle (MitM).",
+                    file_path: "com/android/insecurebankv2/DoTransfer.java",
+                    cwe: "CWE-319",
+                    raw_mobsf_key: "cleartext_traffic_allowed",
+                    priority: 1,
+                    explanation: "Las transferencias y datos bancarios se envían mediante HTTP simple sin cifrar. Cualquier tercero en la misma red Wi-Fi podría interceptar o modificar el tráfico bancario.",
+                    remediation: "Habilitar la configuración de seguridad de red en el manifiesto para exigir HTTPS de forma estricta y rechazar tráfico en texto plano.",
+                    cra_articles: ["Annex I (1)(f)", "Annex I (2)(a)"]
+                  },
+                  {
+                    id: "STORAGE-0",
+                    title: "Copia de seguridad de la aplicación habilitada",
+                    severity: "medium",
+                    masvs_category: "MASVS-STORAGE",
+                    description: "La bandera 'android:allowBackup' está establecida en 'true' en el archivo AndroidManifest.xml, lo que permite realizar copias de seguridad de los datos de la aplicación mediante comandos ADB.",
+                    file_path: "AndroidManifest.xml",
+                    cwe: "CWE-921",
+                    raw_mobsf_key: "allow_backup_enabled",
+                    priority: 2,
+                    explanation: "Al permitir backups, cualquier persona con acceso físico al teléfono móvil y la depuración USB activa puede extraer los datos privados de la aplicación a su ordenador usando 'adb backup'.",
+                    remediation: "Establecer 'android:allowBackup=false' en el archivo AndroidManifest.xml o configurar reglas detalladas de filtrado de copias de seguridad.",
+                    cra_articles: ["Annex I (1)(h)"]
+                  },
+                  {
+                    id: "STORAGE-1",
+                    title: "Almacenamiento de datos sensibles en la base de datos local sin cifrar",
+                    severity: "medium",
+                    masvs_category: "MASVS-STORAGE",
+                    description: "La aplicación almacena registros de transacciones bancarias en una base de datos SQLite estándar sin cifrado adicional.",
+                    file_path: "com/android/insecurebankv2/DatabaseHelper.java",
+                    cwe: "CWE-311",
+                    raw_mobsf_key: "sqlite_db_plain",
+                    priority: 2,
+                    explanation: "La base de datos del historial de transacciones se guarda sin cifrar. Si el dispositivo sufre de rooting o vulnerabilidad del sistema operativo, otras aplicaciones o atacantes físicos podrían leer las transacciones bancarias directamente.",
+                    remediation: "Migrar a SQLCipher o cifrar las columnas con información sensible antes de insertarlas en la base de datos local.",
+                    cra_articles: ["Annex I (1)(h)"]
+                  },
+                  {
+                    id: "PLATFORM-0",
+                    title: "Depuración habilitada en producción",
+                    severity: "low",
+                    masvs_category: "MASVS-PLATFORM",
+                    description: "El atributo 'android:debuggable' está habilitado en el manifiesto, facilitando la conexión de depuradores externos.",
+                    file_path: "AndroidManifest.xml",
+                    cwe: "CWE-215",
+                    raw_mobsf_key: "debuggable_enabled",
+                    priority: 3,
+                    explanation: "El APK se compiló en modo depuración. Esto permite a los atacantes acoplar un depurador en tiempo de ejecución, volcar la memoria y saltarse controles de seguridad importantes.",
+                    remediation: "Asegurarse de que 'android:debuggable' esté en 'false' en el archivo AndroidManifest.xml para todas las compilaciones de producción.",
+                    cra_articles: ["Annex I (1)(h)"]
+                  }
+                ]
+              };
+            } else if (isVault) {
+              p = {
+                scan_id: scanId,
+                app_name: "SecureVault",
+                package_name: "com.example.securevault",
+                score: 94,
+                categories_covered: ["MASVS-STORAGE", "MASVS-PLATFORM"],
+                findings: [
+                  {
+                    id: "STORAGE-0",
+                    title: "Uso de SharedPreferences estándar sin cifrado",
+                    severity: "medium",
+                    masvs_category: "MASVS-STORAGE",
+                    description: "La aplicación almacena configuraciones de usuario que contienen metadatos de sesión en texto plano en las SharedPreferences.",
+                    file_path: "com/example/securevault/SettingsActivity.java",
+                    cwe: "CWE-921",
+                    raw_mobsf_key: "shared_prefs_plain",
+                    priority: 2,
+                    explanation: "Las preferencias de configuración se almacenan sin cifrar. En dispositivos con acceso root, estos archivos xml pueden leerse fácilmente.",
+                    remediation: "Usar EncryptedSharedPreferences de las librerías Android Jetpack Security.",
+                    cra_articles: ["Annex I (1)(h)"]
+                  }
+                ]
+              };
+            } else {
+              p = {
+                scan_id: scanId,
+                app_name: "AppDesconocida",
+                package_name: "com.example.desconocida",
+                score: 80,
+                categories_covered: ["MASVS-STORAGE"],
+                findings: []
+              };
+            }
+          }
+          
+          return new Response(JSON.stringify({
+            scan_id: scanId,
+            app_name: p.app_name,
+            package_name: p.package_name,
+            apk_hash: isVault ? "e1c2d3e4f5a6b7c8d9e0f1a4d3f56b78" : "a4d3f56b78e1c2d3e4f5a6b7c8d9e0f1",
+            cra_score: p.score,
+            duration_seconds: isVault ? 6.2 : 14.5,
+            categories_covered: p.categories_covered,
+            findings: p.findings
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        
+        // 4. GET /scans
+        if (urlStr.endsWith('/scans')) {
+          const history = JSON.parse(localStorage.getItem('ikusa_history') || '[]');
+          return new Response(JSON.stringify(history), {
+            status: 200, headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        
+        // 5. GET /account
+        if (urlStr.endsWith('/account')) {
+          const currentKey = localStorage.getItem('ikusa_api_key') || 'ikusa_sk_demo';
+          const credits = parseInt(localStorage.getItem('ikusa_credits') || '0', 10);
+          const scansMade = parseInt(localStorage.getItem('ikusa_scans_made') || '0', 10);
+          
+          let tier = "free";
+          let scansCap = 3;
+          
+          if (currentKey.includes('biz')) {
+            tier = "business";
+            scansCap = 100;
+          } else if (currentKey.includes('team')) {
+            tier = "team";
+            scansCap = 30;
+          } else if (currentKey.includes('ent')) {
+            tier = "enterprise";
+            scansCap = 999;
+          }
+          
+          return new Response(JSON.stringify({
+            tier: tier,
+            scans_this_month: scansMade,
+            scans_cap: scansCap,
+            credits: credits
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        
+        // 6. POST /payment/checkout
+        if (urlStr.endsWith('/payment/checkout') && (options && options.method === 'POST')) {
+          const body = JSON.parse(options.body);
+          const prod = body.product_id;
+          return new Response(JSON.stringify({
+            checkout_url: "checkout_mock.html?product=" + prod
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        
+        return originalFetch(url, options);
+      };
+    })();
+
+    // ----- View routing helpers -----
+    function showView(name) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const el = document.getElementById('view-' + name);
+      if (el) el.classList.add('active');
+    }
+
+    // ----- DOM helpers (avoid innerHTML so untrusted strings cannot inject HTML) -----
+    function el(tag, opts) {
+      const node = document.createElement(tag);
+      if (!opts) return node;
+      if (opts.cls) node.className = opts.cls;
+      if (opts.text !== undefined) node.textContent = opts.text;
+      if (opts.style) node.setAttribute('style', opts.style);
+      return node;
+    }
+    function clear(parent) { while (parent.firstChild) parent.removeChild(parent.firstChild); }
+
+    // ----- Tier selection -----
+    document.querySelectorAll('.tier-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.tier-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        const radio = card.querySelector('input[type=radio]');
+        if (radio) radio.checked = true;
+      });
+    });
+
+    // ----- File picker + drag/drop -----
+    const fileInput = document.getElementById('fileInput');
+    const fileNameLabel = document.getElementById('fileName');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const dropzone = document.getElementById('dropzone');
+
+    function setSelectedFile(file) {
+      if (!file) return;
+      fileNameLabel.textContent = file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
+      fileNameLabel.style.display = 'block';
+      analyzeBtn.disabled = false;
+    }
+
+    fileInput.addEventListener('change', e => setSelectedFile(e.target.files[0]));
+
+    ['dragenter', 'dragover'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dragover'); })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); })
+    );
+    dropzone.addEventListener('drop', e => {
+      const f = e.dataTransfer.files[0];
+      if (!f) return;
+      const dt = new DataTransfer();
+      dt.items.add(f);
+      fileInput.files = dt.files;
+      setSelectedFile(f);
+    });
+
+    // ----- Stage ordering for progress UI -----
+    const STAGES = ['uploaded', 'decompiling', 'analyzing', 'triaging', 'rendering', 'done'];
+
+    function updateProgress(stage, message) {
+      const idx = STAGES.indexOf(stage);
+      document.querySelectorAll('.pill').forEach((pill, i) => {
+        pill.classList.remove('active', 'done');
+        if (i < idx) pill.classList.add('done');
+        else if (i === idx) pill.classList.add('active');
+      });
+      const pct = Math.max(8, Math.round(((idx + 1) / STAGES.length) * 100));
+      document.getElementById('progressBarFill').style.width = pct + '%';
+      document.getElementById('progressMessage').textContent =
+        message || ('Estado: ' + (stage || 'desconocido'));
+    }
+
+    // ----- Start scan + poll loop -----
+    analyzeBtn.addEventListener('click', startScan);
+
+    async function startScan() {
+      const file = fileInput.files[0];
+      if (!file) return;
+      const tier = document.querySelector('input[name="tier"]:checked').value;
+      analyzeBtn.disabled = true;
+
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('tier', tier);
+
+      const headers = {};
+      const stored = localStorage.getItem('ikusa_api_key');
+      if (stored) headers['Authorization'] = stored;
+
+      let data;
+      try {
+        const resp = await fetch('/scan', { method: 'POST', body: fd, headers });
+        if (resp.status === 402) {
+          const payload = await resp.json();
+          showQuotaError(payload.detail || 'Sin scans disponibles. Compra creditos o cambia de plan.');
+          return;
+        }
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        data = await resp.json();
+      } catch (err) {
+        showError('Upload failed: ' + err.message);
+        return;
+      }
+      document.getElementById('scanIdLabel').textContent = 'scan_id=' + data.scan_id;
+      showView('progress');
+      updateProgress('uploaded', 'Recibido. Esperando MobSF...');
+      pollUntilDone(data.scan_id);
+    }
+
+    async function pollUntilDone(scanId) {
+      while (true) {
+        let s;
+        try {
+          const r = await fetch('/scan/' + scanId);
+          if (!r.ok) {
+            await new Promise(res => setTimeout(res, 2000));
+            continue;
+          }
+          s = await r.json();
+        } catch (err) {
+          await new Promise(res => setTimeout(res, 2000));
+          continue;
+        }
+        updateProgress(s.stage, s.message);
+        if (s.status === 'done') {
+          await loadResults(scanId);
+          return;
+        }
+        if (s.status === 'failed') {
+          showError(s.error || 'unknown error');
+          return;
+        }
+        await new Promise(res => setTimeout(res, 2000));
+      }
+    }
+
+    // ----- Load + render results -----
+    let allFindings = [];
+
+    async function loadResults(scanId) {
+      let result;
+      try {
+        const r = await fetch('/scan/' + scanId + '/result');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        result = await r.json();
+      } catch (err) {
+        showError('Could not load result: ' + err.message);
+        return;
+      }
+
+      document.getElementById('resultAppName').textContent = result.app_name || '(unknown)';
+      document.getElementById('score-value').textContent = result.cra_score;
+
+      // Color the score circle by band.
+      const circle = document.getElementById('scoreCircle');
+      circle.classList.remove('score-red', 'score-orange', 'score-green');
+      const warning = document.getElementById('scoreWarning');
+      if (result.cra_score >= 80) {
+        circle.classList.add('score-green');
+        warning.textContent = 'Buen nivel (objetivo: > 80)';
+        warning.style.background = '#D4EDDA';
+        warning.style.color = '#155724';
+      } else if (result.cra_score >= 50) {
+        circle.classList.add('score-orange');
+        warning.textContent = 'Necesita mejoras (objetivo: > 80)';
+        warning.style.background = '#FFF3CD';
+        warning.style.color = '#856404';
+      } else {
+        circle.classList.add('score-red');
+        warning.textContent = 'Critico: muchos findings de alta severidad';
+        warning.style.background = '#F8D7DA';
+        warning.style.color = '#721C24';
+      }
+
+      // Render MASVS category breakdown.
+      renderMasvs(result.findings || [], result.categories_covered || []);
+
+      // Render findings + filter tabs.
+      allFindings = (result.findings || []).slice().sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
+      renderFilterTabs(allFindings);
+      renderFindings(allFindings, 'all');
+
+      // Top finding -> AI summary box.
+      if (allFindings.length > 0) {
+        const top = allFindings[0];
+        const aiBox = document.getElementById('aiBox');
+        aiBox.style.display = 'block';
+        document.getElementById('aiBoxText').textContent =
+          (top.explanation || top.title) + (top.remediation ? '  Remediacion: ' + top.remediation : '');
+      }
+
+      document.getElementById('findingsTitle').textContent =
+        'Findings (' + allFindings.length + ' encontrados)';
+      document.getElementById('download-pdf').href = 'reporte_ejemplo_compliance.html';
+      document.getElementById('download-json').href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(result, null, 2));
+      document.getElementById('download-json').setAttribute('download', 'scan_' + scanId + '_result.json');
+      document.getElementById('analysisMeta').textContent =
+        'Analisis completado en ' + (result.duration_seconds ? result.duration_seconds.toFixed(1) : '?') +
+        ' s | Paquete: ' + (result.package_name || '(unknown)') +
+        ' | apk_hash=' + (result.apk_hash || '').slice(0, 12);
+
+      showView('results');
+    }
+
+    function severityRank(sev) {
+      return { high: 3, medium: 2, low: 1, info: 0 }[sev] || 0;
+    }
+
+    function severityClass(sev) {
+      return { high: 'alto', medium: 'medio', low: 'bajo', info: 'info' }[sev] || 'info';
+    }
+
+    function severityLabel(sev) {
+      return { high: 'ALTO', medium: 'MEDIO', low: 'BAJO', info: 'INFO' }[sev] || sev.toUpperCase();
+    }
+
+    function severityColor(sev) {
+      return { high: 'var(--danger)', medium: 'var(--orange)', low: 'var(--warning)', info: 'var(--text-light)' }[sev] || 'var(--text-light)';
+    }
+
+    function renderMasvs(findings, categoriesCovered) {
+      const masvsList = document.getElementById('masvsList');
+      clear(masvsList);
+      const allCats = [
+        'MASVS-STORAGE', 'MASVS-CRYPTO', 'MASVS-NETWORK', 'MASVS-AUTH',
+        'MASVS-PLATFORM', 'MASVS-CODE', 'MASVS-RESILIENCE', 'MASVS-PRIVACY'
+      ];
+      const counts = {};
+      const worstSev = {};
+      for (const f of findings) {
+        counts[f.masvs_category] = (counts[f.masvs_category] || 0) + 1;
+        if (!worstSev[f.masvs_category] || severityRank(f.severity) > severityRank(worstSev[f.masvs_category])) {
+          worstSev[f.masvs_category] = f.severity;
+        }
+      }
+      for (const cat of allCats) {
+        const row = el('div', { cls: 'masvs-row' });
+        const covered = categoriesCovered.includes(cat);
+        if (!covered) {
+          row.classList.add('na');
+          row.appendChild(el('span', { text: cat }));
+          row.appendChild(el('span', { text: '-' }));
+          row.appendChild(el('span', { text: 'N/A' }));
+        } else {
+          const count = counts[cat] || 0;
+          let color = 'var(--success)';
+          let label = 'OK';
+          if (count > 0) {
+            const sev = worstSev[cat];
+            color = severityColor(sev);
+            const raw = severityLabel(sev);
+            label = raw.charAt(0) + raw.slice(1).toLowerCase();
+          }
+          row.appendChild(el('span', { text: cat }));
+          row.appendChild(el('span', { cls: 'count', style: 'background:' + color, text: String(count) }));
+          row.appendChild(el('span', { style: 'color:' + color + ';font-weight:700', text: label }));
+        }
+        masvsList.appendChild(row);
+      }
+    }
+
+    function renderFilterTabs(findings) {
+      const tabs = document.getElementById('filterTabs');
+      const counts = { all: findings.length, high: 0, medium: 0, low: 0, info: 0 };
+      for (const f of findings) counts[f.severity] = (counts[f.severity] || 0) + 1;
+      const order = [
+        ['all', 'Todos'],
+        ['high', 'Alto'],
+        ['medium', 'Medio'],
+        ['low', 'Bajo'],
+      ];
+      clear(tabs);
+      for (const [key, label] of order) {
+        const btn = el('button', {
+          cls: 'filter-tab' + (key === 'all' ? ' active' : ''),
+          text: label + ' (' + (counts[key] || 0) + ')',
+        });
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+          btn.classList.add('active');
+          renderFindings(allFindings, key);
+        });
+        tabs.appendChild(btn);
+      }
+    }
+
+    function renderFindings(findings, filter) {
+      const list = document.getElementById('findingsList');
+      clear(list);
+      const subset = filter === 'all' ? findings : findings.filter(f => f.severity === filter);
+      if (subset.length === 0) {
+        list.appendChild(el('p', {
+          style: 'color:var(--text-light);padding:12px 0',
+          text: 'No hay findings en esta categoria.',
+        }));
+        return;
+      }
+      for (const f of subset) {
+        const row = el('div', { cls: 'finding-row' });
+        const header = el('div', { cls: 'finding-header' });
+        header.appendChild(el('span', {
+          cls: 'badge badge-' + severityClass(f.severity),
+          text: severityLabel(f.severity),
+        }));
+        header.appendChild(el('span', { cls: 'title', text: f.title }));
+        row.appendChild(header);
+
+        const cra = (f.cra_articles && f.cra_articles.length) ? ' | CRA: ' + f.cra_articles.join(', ') : '';
+        row.appendChild(el('div', {
+          cls: 'finding-meta',
+          text: f.masvs_category + cra + ' | ' + (f.description || ''),
+        }));
+        if (f.remediation) {
+          row.appendChild(el('div', {
+            cls: 'finding-fix',
+            text: 'Remediacion: ' + f.remediation,
+          }));
+        }
+        list.appendChild(row);
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('error-message').textContent = msg;
+      const cta = document.getElementById('error-cta');
+      if (cta) cta.style.display = 'none';
+      showView('error');
+    }
+
+    function showQuotaError(detail) {
+      // Reuse the existing #view-error structure but surface a "buy credits" CTA.
+      document.getElementById('error-message').textContent = detail;
+      document.getElementById('error-cta').style.display = 'block';
+      showView('error');
+    }
+
+    async function buyCredits(productId) {
+      const stored = localStorage.getItem('ikusa_api_key');
+      if (!stored) {
+        showError('Inicia sesion con una API key antes de comprar creditos.');
+        return;
+      }
+      try {
+        const resp = await fetch('/payment/checkout', {
+          method: 'POST',
+          headers: { 'Authorization': stored, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: productId }),
+        });
+        if (!resp.ok) {
+          showError('Checkout failed: ' + resp.status);
+          return;
+        }
+        const data = await resp.json();
+        window.location.href = data.checkout_url;
+      } catch (e) {
+        showError('Checkout error: ' + e.message);
+      }
+    }
+
+    const buyWebScanBtn = document.getElementById('buyWebScan');
+    if (buyWebScanBtn) buyWebScanBtn.addEventListener('click', () => buyCredits('web-scan'));
+    const buyTerminalSubBtn = document.getElementById('buyTerminalSub');
+    if (buyTerminalSubBtn) buyTerminalSubBtn.addEventListener('click', () => buyCredits('terminal-sub'));
+
+    // ----- History view -----
+    let currentScanId = null;
+
+    async function loadHistory() {
+      const headers = {};
+      const stored = localStorage.getItem('ikusa_api_key');
+      if (stored) headers['Authorization'] = stored;
+
+      try {
+        const resp = await fetch('/scans', { headers });
+        if (!resp.ok) throw new Error('/scans returned ' + resp.status);
+        const scans = await resp.json();
+        renderHistory(scans);
+        showView('history');
+      } catch (e) {
+        showError('No se pudo cargar el historial: ' + e.message);
+      }
+    }
+
+    function renderHistory(scans) {
+      const tbody = document.getElementById('history-tbody');
+      const empty = document.getElementById('history-empty');
+      const table = document.getElementById('history-table');
+      clear(tbody);
+
+      if (scans.length === 0) {
+        empty.style.display = 'block';
+        table.style.display = 'none';
+        return;
+      }
+      empty.style.display = 'none';
+      table.style.display = 'table';
+
+      for (const s of scans) {
+        const tr = document.createElement('tr');
+        const appCell = document.createElement('td');
+        appCell.textContent = s.app_name || s.scan_id.substring(0, 8);
+        const dateCell = document.createElement('td');
+        dateCell.textContent = new Date(s.updated_at).toLocaleString();
+        const statusCell = document.createElement('td');
+        statusCell.textContent = s.status;
+        const scoreCell = document.createElement('td');
+        scoreCell.textContent = s.cra_score != null ? (s.cra_score + '/100') : '—';
+        const actionCell = document.createElement('td');
+        if (s.status === 'done') {
+          const openBtn = document.createElement('button');
+          openBtn.textContent = 'Ver';
+          openBtn.className = 'btn-link';
+          openBtn.addEventListener('click', () => {
+            currentScanId = s.scan_id;
+            loadResults(s.scan_id);
+          });
+          actionCell.appendChild(openBtn);
+        }
+        tr.appendChild(appCell);
+        tr.appendChild(dateCell);
+        tr.appendChild(statusCell);
+        tr.appendChild(scoreCell);
+        tr.appendChild(actionCell);
+        tbody.appendChild(tr);
+      }
+    }
+
+    document.getElementById('navHome').addEventListener('click', e => {
+      e.preventDefault();
+      showView('upload');
+    });
+    document.getElementById('navHistory').addEventListener('click', e => {
+      e.preventDefault();
+      loadHistory();
+    });
+    document.getElementById('navDocs').addEventListener('click', e => {
+      e.preventDefault();
+      showView('docs');
+    });
+    document.getElementById('docsBack').addEventListener('click', () => showView('upload'));
+    document.getElementById('historyNewScan').addEventListener('click', () => showView('upload'));
+
+    document.getElementById('backToUpload').addEventListener('click', () => location.reload());
+    document.getElementById('analyzeAnother').addEventListener('click', () => location.reload());
+    document.getElementById('errorRetry').addEventListener('click', () => location.reload());
+
+    // ----- Tier badge -----
+    async function loadAccount() {
+      const headers = {};
+      const stored = localStorage.getItem('ikusa_api_key');
+      if (stored) headers['Authorization'] = stored;
+
+      try {
+        const resp = await fetch('/account', { headers });
+        if (!resp.ok) return;
+        const acc = await resp.json();
+        const badge = document.getElementById('tierBadge');
+        let label = acc.tier.toUpperCase() + ' · ' + acc.scans_this_month + '/' + acc.scans_cap;
+        if (acc.credits > 0) {
+          label += ' · +' + acc.credits + ' cred';
+        }
+        badge.textContent = label;
+        badge.className = 'tier-badge tier-' + acc.tier;
+      } catch (e) {
+        // Silent fail; not fatal for demo.
+      }
+    }
+
+
+
+    window.addEventListener('DOMContentLoaded', loadAccount);
+  </script>
+</body>
+</html>

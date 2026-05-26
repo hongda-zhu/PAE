@@ -340,9 +340,11 @@
       <p style="margin-bottom:12px">La pipeline ha fallado. Detalle del error:</p>
       <pre id="error-message"></pre>
       <div id="error-cta" style="display:none; margin-top: 16px;">
-        <p style="margin-bottom:8px">Comprar mas scans:</p>
-        <button class="btn btn-primary" id="buyCredits10">10 scans &middot; $20</button>
-        <button class="btn btn-primary" id="buyCredits50">50 scans &middot; $90</button>
+        <p style="margin-bottom:12px; font-weight:600; color:var(--text-sec)">Adquirir plan para continuar:</p>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+          <button class="btn btn-primary" id="buyWebScan" style="background:var(--orange)">1 Análisis Web &middot; $5</button>
+          <button class="btn btn-primary" id="buyTerminalSub" style="background:var(--accent)">Suscripción Terminal &middot; $49/mes</button>
+        </div>
       </div>
       <div class="action-bar">
         <button class="btn btn-primary" id="errorRetry">Volver a empezar</button>
@@ -785,8 +787,10 @@ uv run ikusa-cli scan app.apk -o report.pdf --fail-on alto
       }
     }
 
-    document.getElementById('buyCredits10').addEventListener('click', () => buyCredits('credits-10'));
-    document.getElementById('buyCredits50').addEventListener('click', () => buyCredits('credits-50'));
+    const buyWebScanBtn = document.getElementById('buyWebScan');
+    if (buyWebScanBtn) buyWebScanBtn.addEventListener('click', () => buyCredits('web-scan'));
+    const buyTerminalSubBtn = document.getElementById('buyTerminalSub');
+    if (buyTerminalSubBtn) buyTerminalSubBtn.addEventListener('click', () => buyCredits('terminal-sub'));
 
     // ----- History view -----
     let currentScanId = null;

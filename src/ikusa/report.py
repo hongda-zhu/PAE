@@ -81,7 +81,8 @@ def _build_masvs_summary(findings: list[TriagedFinding]) -> list[dict[str, Any]]
 
 
 def _build_cra_rows(
-    findings: list[TriagedFinding], cra: CraMapper,
+    findings: list[TriagedFinding],
+    cra: CraMapper,
 ) -> list[dict[str, str]]:
     grouped: dict[str, list[TriagedFinding]] = {}
     for f in findings:
@@ -130,10 +131,23 @@ def _render_html(result: ScanResult) -> str:
     )
 
 
-def _run_weasyprint_docker(html_path: Path, pdf_path: Path) -> None:
-    """Invoke the WeasyPrint Docker image to render HTML -> PDF."""
+def _run_weasyprint(html_path: Path, pdf_path: Path) -> None:
+    """Invoke WeasyPrint locally if available on PATH, otherwise fallback to Docker."""
+    if shutil.which("weasyprint") is not None:
+        cmd = [
+            "weasyprint",
+            str(html_path),
+            str(pdf_path),
+        ]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        if proc.returncode != 0:
+            raise PdfRenderError(
+                f"Local WeasyPrint exited {proc.returncode}: {proc.stderr.strip()}"
+            )
+        return
+
     if shutil.which("docker") is None:
-        raise PdfRenderError("docker is not on PATH; cannot render PDF")
+        raise PdfRenderError("Neither 'weasyprint' nor 'docker' is on PATH; cannot render PDF")
 
     workdir = html_path.parent.resolve()
     cmd = [
@@ -164,7 +178,7 @@ def generate_pdf(result: ScanResult, output_path: Path) -> Path:
         html_path = tmp / "report.html"
         pdf_path = tmp / "report.pdf"
         html_path.write_text(html_str, encoding="utf-8")
-        _run_weasyprint_docker(html_path, pdf_path)
+        _run_weasyprint(html_path, pdf_path)
         shutil.copy2(pdf_path, output_path)
 
     return output_path

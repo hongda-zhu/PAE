@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PowerShell - ikusa-cli</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html {
+      width: 100%;
+      height: 100%;
+      background-color: #012456; /* Classic PowerShell blue/dark blue */
+      color: #F0F0F0;
+      font-family: 'Consolas', 'Lucida Console', 'Courier New', monospace;
+      font-size: 16px;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+    #terminal {
+      width: 100%;
+      height: 100%;
+      padding: 24px;
+      overflow-y: auto;
+      text-align: left;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .prompt {
+      color: #34D399; /* Green prompt */
+    }
+    .ps-prompt {
+      color: #F0F0F0;
+    }
+    .cursor {
+      background-color: #F0F0F0;
+      color: #F0F0F0;
+      width: 10px;
+      height: 18px;
+      display: inline-block;
+      animation: blink 1s infinite;
+      vertical-align: middle;
+      margin-left: 2px;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    .alto { color: #F87171; font-weight: bold; }
+    .medio { color: #FBBF24; font-weight: bold; }
+    .info { color: #60A5FA; }
+    .ok { color: #34D399; }
+    .header-sep { color: #60A5FA; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="terminal">
+    <span class="ps-prompt">Windows PowerShell</span>
+    <span>Copyright (C) Microsoft Corporation. All rights reserved.</span>
+    <br>
+    <span class="ps-prompt">PS C:\Users\arnau\Documents\UPC\PAE\PAE&gt; </span><span id="terminal-cmd" style="font-weight:bold; color:#FFFFFF;"></span><span id="terminal-cursor" class="cursor">&nbsp;</span>
+  </div>
+
+  <script>
+    let terminalTimeoutIds = [];
+    
+    function startTerminalSimulation() {
+      terminalTimeoutIds.forEach(id => clearTimeout(id));
+      terminalTimeoutIds = [];
+
+      const term = document.getElementById('terminal');
+      term.innerHTML = '<span class="ps-prompt">Windows PowerShell</span><br><span>Copyright (C) Microsoft Corporation. All rights reserved.</span><br><br><span class="ps-prompt">PS C:\\Users\\arnau\\Documents\\UPC\\PAE\\PAE&gt; </span><span id="terminal-cmd" style="font-weight:bold; color:#FFFFFF;"></span><span id="terminal-cursor" class="cursor">&nbsp;</span>';
+      
+      const cmdSpan = document.getElementById('terminal-cmd');
+      const cursor = document.getElementById('terminal-cursor');
+      
+      const cmd1 = "uv run ikusa-cli scan --fail-on alto app.apk";
+      let charIdx = 0;
+      
+      function typeChar() {
+        if (charIdx < cmd1.length) {
+          cmdSpan.textContent += cmd1.charAt(charIdx);
+          charIdx++;
+          const delay = Math.random() * 40 + 30;
+          terminalTimeoutIds.push(setTimeout(typeChar, delay));
+        } else {
+          terminalTimeoutIds.push(setTimeout(runCmd1, 600));
+        }
+      }
+      
+      terminalTimeoutIds.push(setTimeout(typeChar, 1000));
+      
+      function appendLine(html, color = '#F0F0F0') {
+        const div = document.createElement('div');
+        div.style.color = color;
+        div.innerHTML = html;
+        term.insertBefore(div, cursor.parentNode ? cursor : null);
+        term.scrollTop = term.scrollHeight;
+      }
+      
+      function runCmd1() {
+        appendLine('[ikusa-cli] Iniciando análisis de app.apk...', '#A3A3A3');
+        
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('[ikusa-cli] Enviando archivo al servidor local (http://localhost:9787)...', '#A3A3A3');
+        }, 500));
+        
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('[ikusa-cli] Analizando estructura estática (MobSF)... <span class="ok">OK</span>');
+        }, 1200));
+        
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('[ikusa-cli] Ejecutando triage cognitivo con IA (Ollama)... <span class="ok">OK</span>');
+        }, 1900));
+        
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('[ikusa-cli] Evaluando cumplimiento del Reglamento CRA (Anexo I)... <span class="ok">OK</span>');
+        }, 2600));
+        
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('<br><span class="header-sep">-------------------------------------------------------------</span>');
+          appendLine('<span class="header-sep">IKUSA CLI SCAN SUMMARY - 3 FINDINGS</span>');
+          appendLine('<span class="header-sep">-------------------------------------------------------------</span>');
+          appendLine('<span class="alto">[ALTO]</span> Clave criptográfica hardcoded en clase principal');
+          appendLine('       -&gt; CRA: Annex I.2(b) | Prioridad: 1 (Crítico)', '#A3A3A3');
+          appendLine('<span class="alto">[ALTO]</span> Comunicación HTTP no segura habilitada');
+          appendLine('       -&gt; CRA: Annex I.1(f) | Prioridad: 1 (Crítico)', '#A3A3A3');
+          appendLine('<span class="medio">[MEDIO]</span> Depuración habilitada en producción');
+          appendLine('       -&gt; CRA: Annex I.2(a) | Prioridad: 2 (Medio)', '#A3A3A3');
+          appendLine('<br><strong>CRA Readiness Score:</strong> <span class="medio">78/100</span>');
+          appendLine('<span class="alto">ERROR:</span> Se encontraron findings de severidad ALTO (umbral: alto)');
+          appendLine('<strong>Exit code:</strong> <span class="alto">2</span>');
+          
+          // Print prompt again
+          const promptDiv = document.createElement('div');
+          promptDiv.style.marginTop = '16px';
+          promptDiv.innerHTML = '<span class="ps-prompt">PS C:\\Users\\arnau\\Documents\\UPC\\PAE\\PAE&gt; </span><span id="terminal-cmd2" style="font-weight:bold; color:#FFFFFF;"></span>';
+          term.insertBefore(promptDiv, cursor);
+          
+          terminalTimeoutIds.push(setTimeout(typeCmd2, 1000));
+        }, 3300));
+      }
+      
+      const cmd2 = "uv run ikusa-mcp";
+      let charIdx2 = 0;
+      
+      function typeCmd2() {
+        const cmdSpan2 = document.getElementById('terminal-cmd2');
+        if (cmdSpan2 && charIdx2 < cmd2.length) {
+          cmdSpan2.textContent += cmd2.charAt(charIdx2);
+          charIdx2++;
+          const delay = Math.random() * 40 + 30;
+          terminalTimeoutIds.push(setTimeout(typeCmd2, delay));
+        } else {
+          terminalTimeoutIds.push(setTimeout(runCmd2, 600));
+        }
+      }
+      
+      function runCmd2() {
+        appendLine('[ikusa-mcp] Servidor MCP iniciado con éxito (transporte stdio).', '#A3A3A3');
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('[ikusa-mcp] 4 tools registradas:', '#A3A3A3');
+          appendLine('            - <span class="info">scan_apk</span> (envía archivo al análisis)');
+          appendLine('            - <span class="info">get_scan_status</span> (retorna estado actual)');
+          appendLine('            - <span class="info">get_scan_findings</span> (retorna findings)');
+          appendLine('            - <span class="info">list_scans</span> (lista historial)');
+        }, 500));
+        
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('[ikusa-mcp] Listo para recibir peticiones JSON-RPC de clientes de IA.', '#34D399');
+          term.scrollTop = term.scrollHeight;
+        }, 1200));
+
+        // Simular peticiones del cliente MCP (por ejemplo, Claude Desktop u Ollama/Cursor)
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('\n<span style="color:#60A5FA;">&lt;-- [Cliente]</span> <span style="color:#9CA3AF;">{"jsonrpc":"2.0", "method":"tools/call", "params":{"name":"scan_apk","arguments":{"path":"app.apk"}}, "id":1}</span>');
+          term.scrollTop = term.scrollHeight;
+        }, 2200));
+
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('[ikusa-mcp] Ejecutando tool <span class="info">scan_apk</span> con argumentos: {"path": "app.apk"}', '#A3A3A3');
+          term.scrollTop = term.scrollHeight;
+        }, 3000));
+
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('<span style="color:#34D399;">--&gt; [Servidor]</span> <span style="color:#E2E8F0;">{"jsonrpc":"2.0", "result":{"content":[{"type":"text","text":"{\\"scan_id\\":\\"b92c81ad\\",\\"status\\":\\"processing\\"}"}]}, "id":1}</span>');
+          term.scrollTop = term.scrollHeight;
+        }, 3800));
+
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('\n<span style="color:#60A5FA;">&lt;-- [Cliente]</span> <span style="color:#9CA3AF;">{"jsonrpc":"2.0", "method":"tools/call", "params":{"name":"get_scan_status","arguments":{"scan_id":"b92c81ad"}}, "id":2}</span>');
+          term.scrollTop = term.scrollHeight;
+        }, 5000));
+
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('[ikusa-mcp] Ejecutando tool <span class="info">get_scan_status</span> con argumentos: {"scan_id": "b92c81ad"}', '#A3A3A3');
+          term.scrollTop = term.scrollHeight;
+        }, 5800));
+
+        terminalTimeoutIds.push(setTimeout(() => {
+          appendLine('<span style="color:#34D399;">--&gt; [Servidor]</span> <span style="color:#E2E8F0;">{"jsonrpc":"2.0", "result":{"content":[{"type":"text","text":"{\\"status\\":\\"completed\\",\\"score\\":78,\\"findings\\":3}"}]}, "id":2}</span>');
+          term.scrollTop = term.scrollHeight;
+        }, 6600));
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', startTerminalSimulation);
+  </script>
+</body>
+</html>

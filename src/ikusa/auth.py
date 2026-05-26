@@ -143,11 +143,7 @@ def require_api_key(
     # Late import to avoid circular dependency with config
     from ikusa.config import get_settings
 
-    if (
-        authorization is None
-        or authorization.strip() == ""
-        or authorization == "anonymous"
-    ):
+    if authorization is None or authorization.strip() == "" or authorization == "anonymous":
         return _ANONYMOUS_KEY
 
     # Allow "Bearer <key>" or raw "<key>"

@@ -29,5 +29,25 @@ services:
       - ollama-data:/root/.ollama
     restart: unless-stopped
 
+  ikusa-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ikusa-app
+    ports:
+      - "9787:9787"
+    environment:
+      - MOBSF_URL=http://ikusa-mobsf:8000
+      - OLLAMA_URL=http://ikusa-ollama:11434
+      - SCAN_STORAGE=/app/data/scans
+      - LLM_PROVIDER=ollama
+    volumes:
+      - ikusa-data:/app/data
+    depends_on:
+      - mobsf
+      - ollama
+    restart: unless-stopped
+
 volumes:
   ollama-data:
+  ikusa-data:

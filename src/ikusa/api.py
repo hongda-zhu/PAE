@@ -280,12 +280,16 @@ async def payment_webhook(
     except RuntimeError as e:
         raise HTTPException(410, str(e))
 
-    # Grant credits to the api_key that started the session.
+    # Grant credits or upgrade tier depending on the purchased product.
     keys = load_keys(settings.api_keys_path)
     api_key = keys.get(sess.api_key)
     if api_key is None:
         raise HTTPException(500, "Underlying API key disappeared during fulfillment")
+    
+    if sess.product_id == "terminal-sub":
+        api_key.tier = "team"
     api_key.credits += credits_for_product(sess.product_id)
+    
     keys[api_key.key] = api_key
     save_keys(keys, settings.api_keys_path)
 

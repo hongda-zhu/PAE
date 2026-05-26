@@ -15,9 +15,7 @@ import yaml
 
 from ikusa.models import MasvsCategory
 
-_DEFAULT_DATA_PATH: Path = (
-    Path(__file__).resolve().parents[2] / "data" / "masvs_to_cra.yaml"
-)
+_DEFAULT_DATA_PATH: Path = Path(__file__).resolve().parents[2] / "data" / "masvs_to_cra.yaml"
 
 
 @dataclass(frozen=True)
