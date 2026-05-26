@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>IKUSA Compliance Report -- InsecureBankv2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #1e293b;
+    background: #0f172a; /* Sleek slate-900 background to mimic premium dark mode PDF viewer */
+    padding: 50px 20px;
+    display: flex;
+    justify-content: center;
+    margin: 0;
+  }
+  .pdf-paper {
+    background: white;
+    max-width: 800px;
+    width: 100%;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+    padding: 50px;
+    border-radius: 12px;
+    box-sizing: border-box;
+  }
+  .pdf-header {
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
+    color: white;
+    padding: 24px 32px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    border-bottom: 4px solid #6366f1;
+  }
+  .pdf-header .pdf-logo {
+    font-family: monospace;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 2px;
+  }
+  .pdf-header small {
+    opacity: .8;
+    display: block;
+    font-size: 12px;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+  .pdf-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 32px;
+    font-size: 14px;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .pdf-meta dt { color: #64748b; font-weight: 500; }
+  .pdf-meta dd { font-weight: 600; color: #0f172a; margin: 0; }
+  
+  .score-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 28px;
+  }
+  .score-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .score-bar {
+    height: 18px;
+    background: #e2e8f0;
+    border-radius: 9px;
+    overflow: hidden;
+    margin: 12px 0;
+  }
+  .score-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b 0%, #10b981 100%);
+    border-radius: 9px;
+  }
+  .score-text-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .score-status-badge {
+    background: #ecfdf5;
+    color: #047857;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+  h4 {
+    font-size: 16px;
+    font-weight: 800;
+    margin-top: 32px;
+    margin-bottom: 16px;
+    color: #1e1b4b;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .pdf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin: 16px 0;
+  }
+  .pdf-table th {
+    background: #312e81;
+    color: white;
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .pdf-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .pdf-table tr.alto td { background: #fef2f2; }
+  .pdf-table tr.medio td { background: #fffbeb; }
+  .pdf-table tr.ok td { background: #f0fdf4; }
+  
+  .status-pill {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+  }
+  .status-pill.no-cumple { background: #fee2e2; color: #991b1b; }
+  .status-pill.parcial { background: #fef3c7; color: #92400e; }
+  .status-pill.cumple { background: #d1fae5; color: #065f46; }
+
+  .severity-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .severity-badge.alto { background: #ef4444; color: white; }
+  .severity-badge.medio { background: #f59e0b; color: white; }
+  .severity-badge.bajo { background: #3b82f6; color: white; }
+
+  .pdf-not-covered {
+    font-size: 12px;
+    color: #94a3b8;
+    font-style: italic;
+    margin: 10px 0;
+  }
+  .pdf-finding {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #ef4444;
+    border-radius: 8px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  }
+  .pdf-finding.prio-2 { border-left-color: #f59e0b; }
+  .pdf-finding.prio-3 { border-left-color: #3b82f6; }
+
+  .pdf-finding .title {
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  .pdf-finding .fix {
+    color: #334155;
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .cra-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    font-size: 14px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .cra-row span:first-child {
+    font-weight: 500;
+    color: #334155;
+  }
+  .disclaimer {
+    background: #fef9c3;
+    border-left: 4px solid #eab308;
+    padding: 16px;
+    font-size: 12px;
+    color: #713f12;
+    margin-top: 36px;
+    border-radius: 6px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+  <div class="pdf-paper">
+    <div class="pdf-header">
+      <div>
+        <span class="pdf-logo">IKUSA</span>
+        <small>Compliance Report</small>
+      </div>
+      <div style="text-align:right">
+        <strong>MASVS / CRA</strong>
+        <small>v2.1.0 / 2024/2847</small>
+      </div>
+    </div>
+    
+    <dl class="pdf-meta">
+      <dt>Aplicación:</dt><dd>InsecureBankv2</dd>
+      <dt>Paquete:</dt><dd>com.android.insecurebankv2</dd>
+      <dt>Fecha:</dt><dd>26/05/2026</dd>
+      <dt>Tier:</dt><dd>Compliance PDF (prototype)</dd>
+    </dl>
+    
+    <div class="score-card">
+      <div class="score-card-title">CRA Readiness Score</div>
+      <div class="score-bar"><div class="score-bar-fill" style="width:78%"></div></div>
+      <div class="score-text-container">
+        <span style="font-weight:800; font-size:18px; color:#1e1b4b;">78/100</span>
+        <span class="score-status-badge">Nivel CRA Aceptable</span>
+      </div>
+    </div>
+    
+    <h4>Resumen por Categoría MASVS</h4>
+    <table class="pdf-table">
+      <thead>
+        <tr><th>Categoría</th><th>Hallazgos</th><th>Severidad</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        <tr class="alto"><td>MASVS-CRYPTO</td><td>1</td><td><span class="severity-badge alto">Alto</span></td><td><span class="status-pill no-cumple">NO CUMPLE</span></td></tr>
+        <tr class="alto"><td>MASVS-NETWORK</td><td>1</td><td><span class="severity-badge alto">Alto</span></td><td><span class="status-pill no-cumple">NO CUMPLE</span></td></tr>
+        <tr class="medio"><td>MASVS-STORAGE</td><td>2</td><td><span class="severity-badge medio">Medio</span></td><td><span class="status-pill parcial">PARCIAL</span></td></tr>
+        <tr class="medio"><td>MASVS-PLATFORM</td><td>1</td><td><span class="severity-badge bajo">Bajo</span></td><td><span class="status-pill parcial">PARCIAL</span></td></tr>
+      </tbody>
+    </table>
+    <div class="pdf-not-covered">
+      Categorías no cubiertas: MASVS-AUTH, MASVS-CODE, MASVS-RESILIENCE, MASVS-PRIVACY (Requieren análisis dinámico / runtime testing)
+    </div>
+    
+    <h4>Hallazgos Críticos (Top 3)</h4>
+    <div class="pdf-finding">
+      <div class="title">1. Uso de claves criptográficas estáticas</div>
+      <div class="fix"><strong>Explicación:</strong> Se identificó una clave AES fija dentro de las utilidades de criptografía de la app. Esto anula la seguridad del cifrado, ya que cualquier atacante que descompile el APK puede extraer la clave y descifrar la base de datos o comunicaciones.</div>
+      <div class="fix"><strong>Remediación:</strong> Migrar al Android Keystore System para generar y almacenar claves criptográficas de forma segura protegidas por hardware en el dispositivo.</div>
+    </div>
+    
+    <div class="pdf-finding">
+      <div class="title">2. Uso de HTTP no seguro en el canal de comunicación</div>
+      <div class="fix"><strong>Explicación:</strong> Las transferencias y datos bancarios se envían mediante HTTP simple sin cifrar. Cualquier tercero en la misma red Wi-Fi podría interceptar o modificar el tráfico bancario.</div>
+      <div class="fix"><strong>Remediación:</strong> Habilitar la configuración de seguridad de red en el manifiesto para exigir HTTPS de forma estricta y rechazar tráfico en texto plano.</div>
+    </div>
+    
+    <div class="pdf-finding prio-2">
+      <div class="title">3. Copia de seguridad de la aplicación habilitada</div>
+      <div class="fix"><strong>Explicación:</strong> Al permitir backups, cualquier persona con acceso físico al teléfono móvil y la depuración USB activa puede extraer los datos privados de la aplicación a su ordenador usando 'adb backup'.</div>
+      <div class="fix"><strong>Remediación:</strong> Establecer 'android:allowBackup=false' en el archivo AndroidManifest.xml o configurar reglas detalladas de filtrado de copias de seguridad.</div>
+    </div>
+    
+    <h4>Mapping CRA (Reglamento 2024/2847)</h4>
+    <div class="cra-row"><span>Annex I (1)(f) - Secure network communication</span><span class="status-pill no-cumple">NO CUMPLE</span></div>
+    <div class="cra-row"><span>Annex I (1)(h) - Secure data storage & encryption</span><span class="status-pill parcial">PARCIAL</span></div>
+    <div class="cra-row"><span>Annex I (2)(a) - Secure default configuration</span><span class="status-pill no-cumple">NO CUMPLE</span></div>
+    <div class="cra-row"><span>Annex I (2)(b) - Safe cryptographic key handling</span><span class="status-pill no-cumple">NO CUMPLE</span></div>
+    
+    <div class="disclaimer">Este informe es una simulación de cumplimiento generada por la pipeline de IKUSA. No sustituye una auditoría formal.</div>
+  </div>
+</body>
+</html>

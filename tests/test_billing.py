@@ -45,13 +45,13 @@ def test_checkout_creates_session(billing_client):
     resp = client.post(
         "/payment/checkout",
         headers={"Authorization": "k_user"},
-        json={"product_id": "credits-10"},
+        json={"product_id": "web-scan"},
     )
     assert resp.status_code == 200
     data = resp.json()
     assert data["session_id"].startswith("cs_test_")
     assert data["checkout_url"].startswith("/payment/mock?session=")
-    assert data["credits"] == 10
+    assert data["credits"] == 1
 
     # Persisted.
     sessions = load_sessions(sess_path)
@@ -72,7 +72,7 @@ def test_checkout_anonymous_rejected(billing_client):
     client, _, _ = billing_client
     resp = client.post(
         "/payment/checkout",
-        json={"product_id": "credits-10"},
+        json={"product_id": "web-scan"},
     )
     assert resp.status_code == 401
 
@@ -82,13 +82,13 @@ def test_mock_page_renders_for_valid_session(billing_client):
     checkout = client.post(
         "/payment/checkout",
         headers={"Authorization": "k_user"},
-        json={"product_id": "credits-10"},
+        json={"product_id": "web-scan"},
     )
     session_id = checkout.json()["session_id"]
     page = client.get(f"/payment/mock?session={session_id}")
     assert page.status_code == 200
     assert "MOCK CHECKOUT" in page.text
-    assert "$20.00 USD" in page.text
+    assert "$5.00 USD" in page.text
 
 
 def test_webhook_completes_session_and_grants_credits(billing_client):
@@ -97,7 +97,7 @@ def test_webhook_completes_session_and_grants_credits(billing_client):
     checkout = client.post(
         "/payment/checkout",
         headers={"Authorization": "k_user"},
-        json={"product_id": "credits-10"},
+        json={"product_id": "web-scan"},
     )
     session_id = checkout.json()["session_id"]
 
@@ -108,6 +108,6 @@ def test_webhook_completes_session_and_grants_credits(billing_client):
     )
     assert hook.status_code == 200
 
-    # Credit balance went from 0 -> 10.
+    # Credit balance went from 0 -> 1 (web-scan grants 1 credit).
     after = load_keys(keys_path)["k_user"]
-    assert after.credits == 10
+    assert after.credits == 1

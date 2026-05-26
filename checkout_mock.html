@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stripe Checkout -- IKUSA</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f6f9fc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      color: #32325d;
+    }
+    .checkout-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 50px 100px -20px rgba(50,50,93,0.12), 0 30px 60px -30px rgba(0,0,0,0.15);
+      width: 100%;
+      max-width: 440px;
+      padding: 40px;
+      box-sizing: border-box;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .brand .logo {
+      font-family: monospace;
+      font-size: 24px;
+      font-weight: 800;
+      color: #635bff;
+      letter-spacing: 1px;
+    }
+    .price-display {
+      font-size: 38px;
+      font-weight: 700;
+      color: #0a2540;
+      margin-bottom: 8px;
+    }
+    .product-name {
+      font-size: 16px;
+      color: #697386;
+      margin-bottom: 32px;
+    }
+    .input-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #4f5b66;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #e6ebf1;
+      border-radius: 6px;
+      font-size: 15px;
+      color: #0a2540;
+      box-sizing: border-box;
+      background-color: #fcfdfe;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #635bff;
+      box-shadow: 0 0 0 3px rgba(99,91,255,0.15);
+    }
+    .stripe-input {
+      display: flex;
+      gap: 12px;
+    }
+    .stripe-input input {
+      flex: 1;
+    }
+    .pay-btn {
+      width: 100%;
+      background-color: #635bff;
+      color: white;
+      font-weight: 600;
+      font-size: 16px;
+      padding: 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      transition: background-color 0.15s;
+      margin-top: 12px;
+    }
+    .pay-btn:hover {
+      background-color: #0a2540;
+    }
+    .secured {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #697386;
+      margin-top: 24px;
+    }
+    .secured svg {
+      fill: #697386;
+    }
+  </style>
+</head>
+<body>
+  <div class="checkout-container">
+    <div class="brand">
+      <span class="logo">IKUSA</span>
+    </div>
+    
+    <div id="price" class="price-display">$20.00</div>
+    <div id="product" class="product-name">Cargando producto...</div>
+    
+    <form id="payment-form">
+      <div class="input-group">
+        <label for="email">Correo electrónico</label>
+        <input type="email" id="email" value="profesor@upc.edu" required>
+      </div>
+      
+      <div class="input-group">
+        <label for="card">Datos de la tarjeta</label>
+        <input type="text" id="card" value="4242 4242 4242 4242" placeholder="Nro de tarjeta" required>
+        <div class="stripe-input" style="margin-top: 10px;">
+          <input type="text" placeholder="MM/AA" value="12/28" required>
+          <input type="text" placeholder="CVC" value="123" required>
+        </div>
+      </div>
+      
+      <div class="input-group">
+        <label for="name">Nombre en la tarjeta</label>
+        <input type="text" id="name" value="Profesor PAE UPC" required>
+      </div>
+      
+      <button type="submit" class="pay-btn">Pagar</button>
+    </form>
+    
+    <div class="secured">
+      <svg width="12" height="15" viewBox="0 0 12 15">
+        <path d="M10.5 6h-.75V4.5a3.75 3.75 0 1 0-7.5 0V6H1.5A1.5 1.5 0 0 0 0 7.5v6A1.5 1.5 0 0 0 1.5 15h9a1.5 1.5 0 0 0 1.5-1.5v-6A1.5 1.5 0 0 0 10.5 6zm-7.5-1.5a2.25 2.25 0 1 1 4.5 0V6h-4.5V4.5z"/>
+      </svg>
+      Powered by Stripe | Entorno de simulación
+    </div>
+  </div>
+
+  <script>
+    // Extract product parameter
+    const params = new URLSearchParams(window.location.search);
+    const product = params.get('product') || 'web-scan';
+    
+    const priceEl = document.getElementById('price');
+    const productEl = document.getElementById('product');
+    
+    let creditsToAdd = 1;
+    
+    if (product === 'terminal-sub') {
+      priceEl.textContent = '$49.00';
+      productEl.textContent = 'Suscripción Terminal (Créditos ilimitados)';
+      creditsToAdd = 999;
+    } else if (product === 'web-scan') {
+      priceEl.textContent = '$5.00';
+      productEl.textContent = '1 Análisis Web adicional';
+      creditsToAdd = 1;
+    } else {
+      // default product mapping for the mock recording test product
+      priceEl.textContent = '$20.00';
+      productEl.textContent = 'Bono de 10 Análisis de Compliance';
+      creditsToAdd = 10;
+    }
+    
+    document.getElementById('payment-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Simulate Stripe processing delay
+      const btn = document.querySelector('.pay-btn');
+      btn.textContent = 'Procesando pago...';
+      btn.disabled = true;
+      
+      setTimeout(() => {
+        // Add credits to localStorage
+        const curCredits = parseInt(localStorage.getItem('ikusa_credits') || '0', 10);
+        localStorage.setItem('ikusa_credits', String(curCredits + creditsToAdd));
+        
+        // Redirect back
+        window.location.href = "demostracion_interactiva.html";
+      }, 1500);
+    });
+  </script>
+</body>
+</html>

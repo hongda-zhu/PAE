@@ -203,6 +203,7 @@
       <a href="#" id="navHome">Inicio</a>
       <a href="#" id="navHistory">Historial</a>
       <a href="#" id="navDocs">Documentacion</a>
+
     </nav>
     <span class="scan-id" id="scanIdLabel"></span>
     <span class="tier-badge" id="tierBadge"></span>
@@ -225,26 +226,14 @@
         <p id="fileName" style="margin-top:8px;font-weight:600;color:var(--accent);display:none"></p>
       </label>
 
-      <p class="tier-select">Selecciona el tipo de analisis:</p>
-      <div class="tiers">
-        <div class="tier-card" data-color="teal" data-tier="basico">
-          <div class="price">$0.50</div>
-          <div class="name">Scan Basico</div>
-          <div class="desc">SAST sin LLM</div>
-          <input type="radio" name="tier" value="basico">
-        </div>
-        <div class="tier-card selected" data-color="blue" data-tier="completo">
-          <div class="recommended">RECOMENDADO</div>
-          <div class="price">$2.00</div>
-          <div class="name">Scan Completo</div>
-          <div class="desc">SAST + IA (LLM)</div>
-          <input type="radio" name="tier" value="completo" checked>
-        </div>
-        <div class="tier-card" data-color="green" data-tier="compliance">
+      <p class="tier-select">Tipo de analisis:</p>
+      <div class="tiers" style="justify-content: center;">
+        <div class="tier-card selected" data-color="green" data-tier="compliance" style="width: 320px; cursor: default;">
+          <div class="recommended">PLAN UNICO</div>
           <div class="price">$5.00</div>
           <div class="name">Compliance PDF</div>
-          <div class="desc">MASVS/CRA Report</div>
-          <input type="radio" name="tier" value="compliance">
+          <div class="desc">Auditoria completa (SAST + IA + PDF)</div>
+          <input type="radio" name="tier" value="compliance" checked style="display: none;">
         </div>
       </div>
 
@@ -334,7 +323,7 @@
 
           <div class="action-bar">
             <a class="btn btn-success" id="download-pdf" href="#" target="_blank">Descargar PDF</a>
-            <a class="btn btn-outline" id="download-json" href="#" target="_blank">Ver JSON</a>
+            <a class="btn btn-outline" id="download-json" href="#" target="_blank">Descargar JSON</a>
             <button class="btn btn-ghost" id="analyzeAnother">Analizar otro APK</button>
           </div>
         </div>
@@ -351,9 +340,11 @@
       <p style="margin-bottom:12px">La pipeline ha fallado. Detalle del error:</p>
       <pre id="error-message"></pre>
       <div id="error-cta" style="display:none; margin-top: 16px;">
-        <p style="margin-bottom:8px">Comprar mas scans:</p>
-        <button class="btn btn-primary" id="buyCredits10">10 scans &middot; $20</button>
-        <button class="btn btn-primary" id="buyCredits50">50 scans &middot; $90</button>
+        <p style="margin-bottom:12px; font-weight:600; color:var(--text-sec)">Adquirir plan para continuar:</p>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+          <button class="btn btn-primary" id="buyWebScan" style="background:var(--orange)">1 Análisis Web &middot; $5</button>
+          <button class="btn btn-primary" id="buyTerminalSub" style="background:var(--accent)">Suscripción Terminal &middot; $49/mes</button>
+        </div>
       </div>
       <div class="action-bar">
         <button class="btn btn-primary" id="errorRetry">Volver a empezar</button>
@@ -372,12 +363,9 @@
       <div class="card docs-section full">
         <h3><span class="num">1</span> Uso web</h3>
         <p>Arrastra un <code>.apk</code> o <code>.aab</code> a la zona de subida
-          (max 150 MB), elige el tipo de analisis y pulsa "Analizar APK". El
-          analisis corre en segundo plano: no cierres la pestana.</p>
+          (max 150 MB) y pulsa "Analizar APK". El analisis corre en segundo plano: no cierres la pestana.</p>
         <ul>
-          <li><strong>SAST sin LLM</strong> &mdash; solo analisis estatico MobSF. El mas rapido.</li>
-          <li><strong>SAST + IA (LLM)</strong> &mdash; anade triage con IA: prioridad y explicacion en lenguaje claro.</li>
-          <li><strong>MASVS/CRA Report</strong> &mdash; lo anterior mas el PDF de compliance descargable.</li>
+          <li><strong>Compliance PDF</strong> &mdash; Auditoria de seguridad completa que combina analisis estatico con MobSF, triage avanzado mediante IA (LLM) y la generacion automatica del reporte en formato PDF compatible con MASVS/CRA.</li>
         </ul>
         <div class="docs-note">El triage con IA tarda <strong>~2-3 minutos en
           CPU</strong> (segundos con GPU). El <strong>CRA Readiness Score</strong>
@@ -433,6 +421,8 @@ uv run ikusa-cli scan app.apk -o report.pdf --fail-on alto
       <button class="btn btn-outline" id="docsBack">Volver al inicio</button>
     </div>
   </main>
+
+
 
   <footer class="footer">Prototipo IKUSA Compliance Scanner | MASVS v2.1 + CRA Annex I</footer>
 
@@ -797,8 +787,10 @@ uv run ikusa-cli scan app.apk -o report.pdf --fail-on alto
       }
     }
 
-    document.getElementById('buyCredits10').addEventListener('click', () => buyCredits('credits-10'));
-    document.getElementById('buyCredits50').addEventListener('click', () => buyCredits('credits-50'));
+    const buyWebScanBtn = document.getElementById('buyWebScan');
+    if (buyWebScanBtn) buyWebScanBtn.addEventListener('click', () => buyCredits('web-scan'));
+    const buyTerminalSubBtn = document.getElementById('buyTerminalSub');
+    if (buyTerminalSubBtn) buyTerminalSubBtn.addEventListener('click', () => buyCredits('terminal-sub'));
 
     // ----- History view -----
     let currentScanId = null;
@@ -903,6 +895,8 @@ uv run ikusa-cli scan app.apk -o report.pdf --fail-on alto
         // Silent fail; not fatal for demo.
       }
     }
+
+
 
     window.addEventListener('DOMContentLoaded', loadAccount);
   </script>

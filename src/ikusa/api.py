@@ -46,6 +46,9 @@ async def scan(
     api_key: ApiKey = Depends(require_api_key),
 ):
     """Accept an APK upload, kick off the pipeline, return scan_id immediately."""
+    if tier != "compliance":
+        raise HTTPException(status_code=400, detail="Only 'compliance' scan tier is supported")
+
     if not file.filename:
         raise HTTPException(status_code=400, detail="filename required")
 
@@ -134,7 +137,12 @@ async def get_scan_result(scan_id: str):
     result_file = settings.scan_storage / scan_id / "result.json"
     if not result_file.exists():
         raise HTTPException(status_code=404, detail="scan result not available yet")
-    return FileResponse(result_file, media_type="application/json")
+    return FileResponse(
+        result_file,
+        media_type="application/json",
+        filename=f"ikusa_result_{scan_id}.json",
+        content_disposition_type="attachment",
+    )
 
 
 @app.get("/scan/{scan_id}/report")
@@ -228,8 +236,8 @@ async def payment_mock_page(session: str):
   <div class="container">
     <div class="mock-banner">MOCK CHECKOUT -- sin cargo real</div>
     <h1>IKUSA Compliance Scanner</h1>
-    <p class="product">{product['label']}</p>
-    <p class="amount">${product['amount_cents'] / 100:.2f} USD</p>
+    <p class="product">{product["label"]}</p>
+    <p class="amount">${product["amount_cents"] / 100:.2f} USD</p>
 
     <div class="row">
       <label>Numero de tarjeta</label>
@@ -245,7 +253,7 @@ async def payment_mock_page(session: str):
     <form method="post" action="/payment/webhook">
       <input type="hidden" name="event_type" value="checkout.session.completed">
       <input type="hidden" name="session_id" value="{sess.session_id}">
-      <button type="submit">Pagar ${product['amount_cents'] / 100:.2f}</button>
+      <button type="submit">Pagar ${product["amount_cents"] / 100:.2f}</button>
     </form>
 
     <p class="note">Powered by Stripe (mock).</p>
@@ -272,12 +280,16 @@ async def payment_webhook(
     except RuntimeError as e:
         raise HTTPException(410, str(e))
 
-    # Grant credits to the api_key that started the session.
+    # Grant credits or upgrade tier depending on the purchased product.
     keys = load_keys(settings.api_keys_path)
     api_key = keys.get(sess.api_key)
     if api_key is None:
         raise HTTPException(500, "Underlying API key disappeared during fulfillment")
+    
+    if sess.product_id == "terminal-sub":
+        api_key.tier = "team"
     api_key.credits += credits_for_product(sess.product_id)
+    
     keys[api_key.key] = api_key
     save_keys(keys, settings.api_keys_path)
 

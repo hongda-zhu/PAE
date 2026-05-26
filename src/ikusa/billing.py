@@ -25,11 +25,10 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, Field
 
-# Available "products" -- each maps a stripe-like price tier to scan credit grants.
+# Available "products" -- each maps a stripe-like price tier to scan credit grants or tier upgrades.
 PRODUCTS: dict[str, dict] = {
-    "credits-10": {"label": "10 scans", "amount_cents": 2000, "credits": 10},
-    "credits-50": {"label": "50 scans", "amount_cents": 9000, "credits": 50},
-    "credits-200": {"label": "200 scans", "amount_cents": 30000, "credits": 200},
+    "web-scan": {"label": "Análisis web único", "amount_cents": 500, "credits": 1},
+    "terminal-sub": {"label": "Suscripción Terminal (mensual)", "amount_cents": 4900, "credits": 0},
 }
 
 _SESSION_TTL_SECONDS = 3600  # 1 hour

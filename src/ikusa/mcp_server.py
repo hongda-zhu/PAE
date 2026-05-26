@@ -66,7 +66,7 @@ async def scan_apk(
     Args:
         apk_path: Absolute path to the .apk file on the machine running the server.
         api_key: Optional ikusa_sk_* key. If omitted, falls back to anonymous (free tier).
-        tier: One of "basico", "completo", "compliance" (default).
+        tier: Must be "compliance" (the only plan available).
     """
     path = Path(apk_path).expanduser().resolve()
     if not path.exists():

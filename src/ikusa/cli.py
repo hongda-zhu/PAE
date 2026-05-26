@@ -74,7 +74,7 @@ def login(api_key: str) -> None:
 @click.option(
     "--tier",
     default="compliance",
-    type=click.Choice(["basico", "completo", "compliance"]),
+    type=click.Choice(["compliance"]),
     help="Scan tier (default: compliance)",
 )
 @click.option("--api-key", help="API key (overrides env IKUSA_API_KEY and credentials file)")
@@ -179,9 +179,7 @@ def scan(
 
     # Fetch result for fail-on logic
     try:
-        result_resp = httpx.get(
-            f"{base}/scan/{scan_id}/result", headers=headers, timeout=15.0
-        )
+        result_resp = httpx.get(f"{base}/scan/{scan_id}/result", headers=headers, timeout=15.0)
         result_resp.raise_for_status()
     except httpx.HTTPError as exc:
         click.echo(f"Could not fetch result: {exc}", err=True)
@@ -196,9 +194,7 @@ def scan(
     if output is None:
         output = Path(f"{apk_path.stem}-report.pdf")
     try:
-        pdf_resp = httpx.get(
-            f"{base}/scan/{scan_id}/report", headers=headers, timeout=30.0
-        )
+        pdf_resp = httpx.get(f"{base}/scan/{scan_id}/report", headers=headers, timeout=30.0)
         pdf_resp.raise_for_status()
     except httpx.HTTPError as exc:
         click.echo(f"Could not fetch PDF: {exc}", err=True)
@@ -210,9 +206,7 @@ def scan(
     if fail_on != "none":
         threshold = _SEVERITY_ORDER.get(fail_on, 0)
         violating = [
-            f
-            for f in result["findings"]
-            if _SEVERITY_ORDER.get(f["severity"], 0) >= threshold
+            f for f in result["findings"] if _SEVERITY_ORDER.get(f["severity"], 0) >= threshold
         ]
         if violating:
             click.echo(
@@ -231,9 +225,7 @@ def status(scan_id: str, api_key: str | None, server: str | None) -> None:
     api_key = api_key or _load_api_key()
     base = _server_url(server)
     try:
-        resp = httpx.get(
-            f"{base}/scan/{scan_id}", headers=_headers(api_key), timeout=15.0
-        )
+        resp = httpx.get(f"{base}/scan/{scan_id}", headers=_headers(api_key), timeout=15.0)
         resp.raise_for_status()
     except httpx.HTTPError as exc:
         click.echo(f"Status fetch failed: {exc}", err=True)
@@ -253,9 +245,7 @@ def report(scan_id: str, output: Path, api_key: str | None, server: str | None) 
     api_key = api_key or _load_api_key()
     base = _server_url(server)
     try:
-        resp = httpx.get(
-            f"{base}/scan/{scan_id}/report", headers=_headers(api_key), timeout=30.0
-        )
+        resp = httpx.get(f"{base}/scan/{scan_id}/report", headers=_headers(api_key), timeout=30.0)
         resp.raise_for_status()
     except httpx.HTTPError as exc:
         click.echo(f"Report fetch failed: {exc}", err=True)
