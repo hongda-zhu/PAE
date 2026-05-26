@@ -2,10 +2,30 @@
 
 Automated MASVS / CRA compliance scanner for Android APKs.
 
-## Requirements
+## Para evaluadores -- arranque en un comando
+
+Solo se necesita Docker (y `make`). Sin instalar Python, sin capturar claves
+a mano. Desde el repo clonado:
+
+```bash
+make demo
+```
+
+Esto: copia `.env.demo` a `.env` (si no existe), construye la imagen de la
+app, arranca los tres servicios (MobSF + Ollama + app), descarga el modelo
+LLM la primera vez (~5 GB) y deja la app en `http://localhost:9787`. Para
+parar: `make demo-down`.
+
+La primera ejecucion tarda ~5-10 min (descarga de modelo + arranque en
+frio de MobSF). Las siguientes son ~30 s.
+
+Para acelerar el triage con IA (~3 min CPU -> ~10 s con OpenAI): editar
+`.env` y poner `LLM_PROVIDER=openai` + `OPENAI_API_KEY=sk-...`.
+
+## Requirements (desarrollo local)
 
 - Python >= 3.11
-- Docker (for MobSF + Ollama + WeasyPrint sandboxes)
+- Docker (for MobSF + Ollama services)
 - ~10 GB free disk (MobSF image + Qwen2.5-7B model)
 - CPU-only is supported; GPU dramatically speeds up the LLM stage.
 
@@ -25,15 +45,11 @@ docker logs ikusa-mobsf 2>&1 | grep -m1 "REST API Key" | awk '{print $NF}'
 # Paste the value into MOBSF_API_KEY=... in .env
 ```
 
-> **Important -- the MobSF key is not stable.** MobSF runs as uid 9901 and a
-> Docker named volume would be root-owned and unwritable, so the prototype
-> intentionally keeps MobSF state in the container layer (no volume). The
-> consequence: the REST API key is **regenerated every time the MobSF
-> container is recreated** (`docker compose down`, image pull, host reboot).
-> After any restart you must re-run the `docker logs ... grep "REST API Key"`
-> command above and update `MOBSF_API_KEY` in `.env`, or every scan fails with
-> a silent MobSF 401. Ollama's model lives in the `ollama-data` named volume
-> and is preserved across restarts.
+> **Note.** Since the `docker-compose.yml` now injects `MOBSF_API_KEY` into
+> MobSF via env, the REST key matches `.env` by construction -- there is no
+> need to re-capture it from logs after `docker compose down`. The capture
+> step above is only required if you start MobSF outside compose (e.g. a
+> raw `docker run` without `-e MOBSF_API_KEY=...`).
 
 ## Run
 
