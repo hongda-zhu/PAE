@@ -1,0 +1,17 @@
+.venv/
+.git/
+.gitignore
+.gstack/
+.playwright-mcp/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+*.swp
+.env
+.env.local
+docker/
+tests/
+docs/
+README.md
+FINAL_STATUS.md
