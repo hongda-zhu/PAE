@@ -1,5 +1,7 @@
 # IKUSA Compliance Scanner -- Prototype
 
+**Authors:** Hongda Zhu, Arnau Garcia, Ferran Mesas and Ishak Felfoul
+
 Automated MASVS / CRA compliance scanner for Android APKs.
 
 ## Para evaluadores -- arranque en un comando
