@@ -184,3 +184,8 @@ After `make seed-keys`:
 
 Anonymous requests (no `Authorization` header) work too -- they get the free
 tier in-memory fallback.
+
+## License
+
+Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file
+for the full text.
